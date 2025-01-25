@@ -1,3 +1,11 @@
+pub mod settings;
+
 fn main() {
-    println!("Hello, world!");
+    let settings = settings::Settings::new();
+    if !settings.settings_exists() {
+        println!(
+            "Settings file {} does not exist, using defaults",
+            &settings.settings_file
+        );
+    }
 }
