@@ -33,9 +33,20 @@ impl App {
             .title("Details")
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
-        let text = "Details of the selected bon";
-        let paragraph = Paragraph::new(text).block(block).centered();
-        paragraph.render(area, buf);
+
+        let items: Vec<ListItem> = if let Some(i) = self.bon_list.state.selected() {
+            self.bon_list.items[i]
+                .entries
+                .iter()
+                .map(ListItem::from)
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        let list = List::new(items).block(block);
+
+        Widget::render(list, area, buf);
     }
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
@@ -64,6 +75,16 @@ impl App {
 impl From<&database::Bon> for ListItem<'_> {
     fn from(value: &database::Bon) -> Self {
         let line = Line::from(format!("{} {} €", value.date, value.price));
+        ListItem::new(line)
+    }
+}
+
+impl From<&database::Entry> for ListItem<'_> {
+    fn from(value: &database::Entry) -> Self {
+        let line = Line::from(format!(
+            "{} {} {} €",
+            value.category, value.product, value.price
+        ));
         ListItem::new(line)
     }
 }
