@@ -15,6 +15,8 @@ pub enum Event {
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
+    NextItem,
+    PreviousItem,
     Quit,
 }
 

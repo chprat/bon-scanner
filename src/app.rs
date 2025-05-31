@@ -41,6 +41,8 @@ impl Default for App {
 impl App {
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
         match key_event.code {
+            KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
+            KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
             KeyCode::Char('q') => self.events.send(AppEvent::Quit),
             _ => {}
         }
@@ -51,7 +53,26 @@ impl App {
         Self::default()
     }
 
+    fn next_item(&mut self) {
+        if let Some(i) = self.bon_list.state.selected() {
+            if i < self.bon_list.items.len() - 1 {
+                self.bon_list.state.select_next();
+            }
+        }
+    }
+
+    fn previous_item(&mut self) {
+        if let Some(i) = self.bon_list.state.selected() {
+            if i > 0 {
+                self.bon_list.state.select_previous();
+            }
+        }
+    }
+
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
+        if !self.bon_list.items.is_empty() {
+            self.bon_list.state.select_first();
+        }
         while self.running {
             terminal.draw(|frame| frame.render_widget(&mut self, frame.area()))?;
             match self.events.next().await? {
@@ -62,6 +83,8 @@ impl App {
                     }
                 }
                 Event::App(app_event) => match app_event {
+                    AppEvent::NextItem => self.next_item(),
+                    AppEvent::PreviousItem => self.previous_item(),
                     AppEvent::Quit => self.quit(),
                 },
             }
