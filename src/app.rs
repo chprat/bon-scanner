@@ -4,11 +4,18 @@ use crate::settings;
 use ratatui::{
     DefaultTerminal,
     crossterm::event::{KeyCode, KeyEvent},
+    widgets::ListState,
 };
 
 pub struct App {
+    pub bon_list: BonList,
     events: EventHandler,
     running: bool,
+}
+
+pub struct BonList {
+    pub items: Vec<database::Bon>,
+    pub state: ListState,
 }
 
 impl Default for App {
@@ -19,7 +26,12 @@ impl Default for App {
         if !database_exists {
             database.create_database();
         }
+        let bons = database.get_bons();
         Self {
+            bon_list: BonList {
+                items: bons,
+                state: ListState::default(),
+            },
             events: EventHandler::new(),
             running: true,
         }
