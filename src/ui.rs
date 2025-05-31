@@ -21,9 +21,13 @@ impl Widget for &mut App {
         let [list_area, details_area] =
             Layout::horizontal([Constraint::Fill(2), Constraint::Fill(1)]).areas(main_area);
 
+        let [items_area, summary_area] =
+            Layout::vertical([Constraint::Fill(2), Constraint::Fill(1)]).areas(details_area);
+
         App::render_footer(footer_area, buf);
-        self.render_details(details_area, buf);
+        self.render_details(items_area, buf);
         self.render_list(list_area, buf);
+        self.render_summary(summary_area, buf);
     }
 }
 
@@ -69,6 +73,19 @@ impl App {
             .highlight_spacing(HighlightSpacing::Always);
 
         StatefulWidget::render(list, area, buf, &mut self.bon_list.state);
+    }
+
+    fn render_summary(&mut self, area: Rect, buf: &mut Buffer) {
+        let block = Block::bordered()
+            .title("Summary")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let text = "Summary of the selected bon";
+
+        let paragraph = Paragraph::new(text).block(block).centered();
+
+        paragraph.render(area, buf);
     }
 }
 
