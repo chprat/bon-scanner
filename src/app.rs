@@ -7,17 +7,24 @@ use ratatui::{
     widgets::ListState,
 };
 use std::collections::HashMap;
+use std::fs;
 
 pub struct App {
     pub bon_list: BonList,
     pub bon_summary: Vec<SummaryEntry>,
     pub current_state: AppState,
     events: EventHandler,
+    pub import_list: FileList,
     running: bool,
 }
 
 pub struct BonList {
     pub items: Vec<database::Bon>,
+    pub state: ListState,
+}
+
+pub struct FileList {
+    pub items: Vec<String>,
     pub state: ListState,
 }
 
@@ -39,6 +46,11 @@ impl Default for App {
             database.create_database();
         }
         let bons = database.get_bons();
+        let import_list = fs::read_dir(settings.import_path())
+            .expect("Couldn't read bons directory")
+            .filter_map(Result::ok)
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .collect::<Vec<String>>();
         Self {
             bon_list: BonList {
                 items: bons,
@@ -47,6 +59,10 @@ impl Default for App {
             bon_summary: Vec::new(),
             current_state: AppState::Home,
             events: EventHandler::new(),
+            import_list: FileList {
+                items: import_list,
+                state: ListState::default(),
+            },
             running: true,
         }
     }
@@ -118,6 +134,9 @@ impl App {
         if !self.bon_list.items.is_empty() {
             self.bon_list.state.select_first();
             self.events.send(AppEvent::CalculateSummary);
+        }
+        if !self.import_list.items.is_empty() {
+            self.import_list.state.select_first();
         }
         while self.running {
             terminal.draw(|frame| frame.render_widget(&mut self, frame.area()))?;
