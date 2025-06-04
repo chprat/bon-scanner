@@ -63,7 +63,7 @@ impl Settings {
         let home = dirs::home_dir().expect("Couldn't detect home folder");
         let home_dir = Path::new(&home);
         home_dir
-            .join(".bon-scanner.toml")
+            .join(".config/bon-scanner.toml")
             .to_str()
             .expect("Couldn't convert path to string")
             .to_string()
