@@ -101,6 +101,7 @@ impl App {
             KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
             KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
             KeyCode::Char('q') => self.events.send(AppEvent::Quit),
+            KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
             _ => {}
         }
         Ok(())
@@ -119,19 +120,41 @@ impl App {
     }
 
     fn next_item(&mut self) {
-        if let Some(i) = self.bon_list.state.selected() {
-            if i < self.bon_list.items.len() - 1 {
-                self.bon_list.state.select_next();
-                self.events.send(AppEvent::CalculateSummary);
+        match self.current_state {
+            AppState::Home => {
+                if let Some(i) = self.bon_list.state.selected() {
+                    if i < self.bon_list.items.len() - 1 {
+                        self.bon_list.state.select_next();
+                        self.events.send(AppEvent::CalculateSummary);
+                    }
+                }
+            }
+            AppState::Import => {
+                if let Some(i) = self.import_list.state.selected() {
+                    if i < self.import_list.items.len() - 1 {
+                        self.import_list.state.select_next();
+                    }
+                }
             }
         }
     }
 
     fn previous_item(&mut self) {
-        if let Some(i) = self.bon_list.state.selected() {
-            if i > 0 {
-                self.bon_list.state.select_previous();
-                self.events.send(AppEvent::CalculateSummary);
+        match self.current_state {
+            AppState::Home => {
+                if let Some(i) = self.bon_list.state.selected() {
+                    if i > 0 {
+                        self.bon_list.state.select_previous();
+                        self.events.send(AppEvent::CalculateSummary);
+                    }
+                }
+            }
+            AppState::Import => {
+                if let Some(i) = self.import_list.state.selected() {
+                    if i > 0 {
+                        self.import_list.state.select_previous();
+                    }
+                }
             }
         }
     }
@@ -169,13 +192,6 @@ impl App {
     pub fn tick(&self) {}
 
     pub fn quit(&mut self) {
-        match self.current_state {
-            AppState::Home => {
-                self.running = false;
-            }
-            AppState::Import => {
-                self.events.send(AppEvent::GoHomeState);
-            }
-        }
+        self.running = false;
     }
 }

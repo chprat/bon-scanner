@@ -1,15 +1,16 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Constraint, Layout, Rect},
+    layout::{Alignment, Constraint, Flex, Layout, Rect},
     style::{Modifier, Style, Stylize, palette::tailwind::CYAN},
     text::Line,
     widgets::{
-        Block, BorderType, HighlightSpacing, List, ListItem, Paragraph, StatefulWidget, Widget,
+        Block, BorderType, Clear, HighlightSpacing, List, ListItem, Paragraph, StatefulWidget,
+        Widget,
     },
 };
 
 use crate::{
-    app::{App, SummaryEntry},
+    app::{App, AppState, SummaryEntry},
     database,
 };
 
@@ -27,10 +28,14 @@ impl Widget for &mut App {
         let [items_area, summary_area] =
             Layout::vertical([Constraint::Fill(2), Constraint::Fill(1)]).areas(details_area);
 
-        App::render_footer(footer_area, buf);
         self.render_details(items_area, buf);
+        self.render_footer(footer_area, buf);
         self.render_list(list_area, buf);
         self.render_summary(summary_area, buf);
+
+        if matches!(self.current_state, AppState::Import) {
+            self.render_import(area, buf);
+        }
     }
 }
 
@@ -56,10 +61,36 @@ impl App {
         Widget::render(list, area, buf);
     }
 
-    fn render_footer(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Next: j | Previous: k | Quit: q")
-            .style(FOOTER_STYLE)
-            .render(area, buf);
+    fn render_footer(&self, area: Rect, buf: &mut Buffer) {
+        let text = match self.current_state {
+            AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
+            AppState::Import => "Next: j | Previous: k | Close: Esc | Quit: q",
+        };
+        Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
+    }
+
+    fn render_import(&mut self, area: Rect, buf: &mut Buffer) {
+        let import_area = popup_area(area, 50, 50);
+
+        let block = Block::bordered()
+            .title("Files")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let items: Vec<ListItem> = self
+            .import_list
+            .items
+            .iter()
+            .map(|elem| ListItem::from(elem.as_str()))
+            .collect();
+
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_spacing(HighlightSpacing::Always);
+
+        Widget::render(Clear, import_area, buf);
+        StatefulWidget::render(list, import_area, buf, &mut self.import_list.state);
     }
 
     fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
@@ -90,6 +121,14 @@ impl App {
 
         Widget::render(list, area, buf);
     }
+}
+
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
 }
 
 impl From<&database::Bon> for ListItem<'_> {
