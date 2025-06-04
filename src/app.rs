@@ -11,6 +11,7 @@ use std::collections::HashMap;
 pub struct App {
     pub bon_list: BonList,
     pub bon_summary: Vec<SummaryEntry>,
+    pub current_state: AppState,
     events: EventHandler,
     running: bool,
 }
@@ -18,6 +19,10 @@ pub struct App {
 pub struct BonList {
     pub items: Vec<database::Bon>,
     pub state: ListState,
+}
+
+pub enum AppState {
+    Home,
 }
 
 pub struct SummaryEntry {
@@ -40,6 +45,7 @@ impl Default for App {
                 state: ListState::default(),
             },
             bon_summary: Vec::new(),
+            current_state: AppState::Home,
             events: EventHandler::new(),
             running: true,
         }
@@ -82,6 +88,10 @@ impl App {
         Ok(())
     }
 
+    fn go_home_state(&mut self) {
+        self.current_state = AppState::Home;
+    }
+
     pub fn new() -> Self {
         Self::default()
     }
@@ -120,6 +130,7 @@ impl App {
                 }
                 Event::App(app_event) => match app_event {
                     AppEvent::CalculateSummary => self.calculate_summary(),
+                    AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::NextItem => self.next_item(),
                     AppEvent::PreviousItem => self.previous_item(),
                     AppEvent::Quit => self.quit(),
