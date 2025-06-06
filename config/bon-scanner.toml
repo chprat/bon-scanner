@@ -1,1 +1,2 @@
+import_path = "config"
 database = "config/bon-scanner.sqlite"
