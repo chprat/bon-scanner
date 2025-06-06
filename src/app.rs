@@ -1,4 +1,6 @@
+use crate::database;
 use crate::event::{AppEvent, Event, EventHandler};
+use crate::settings;
 use ratatui::{
     DefaultTerminal,
     crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
@@ -11,6 +13,12 @@ pub struct App {
 
 impl Default for App {
     fn default() -> Self {
+        let settings = settings::Settings::new();
+        let database_exists = settings.database_exists();
+        let database = database::Database::new(&settings.database_file);
+        if !database_exists {
+            database.create_database();
+        }
         Self {
             events: EventHandler::new(),
             running: true,
