@@ -3,6 +3,13 @@ pub struct Database {
 }
 
 impl Database {
+    pub fn add_blacklist_entry(&self, blacklist_entry: &str) {
+        let query = format!("INSERT INTO blacklist (blacklistEntry) VALUES ('{blacklist_entry}')");
+        self.connection
+            .execute(query)
+            .expect("Couldn't insert blacklist");
+    }
+
     pub fn create_bon(&self, date: &str, price: f64) {
         let query = format!("INSERT INTO bons (date, price) VALUES ('{date}', '{price}')");
         self.connection.execute(query).expect("Couldn't insert bon");
@@ -18,6 +25,7 @@ impl Database {
     pub fn create_database(&self) {
         let query = "
             CREATE TABLE bons (bonId INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, price REAL NOT NULL);
+            CREATE TABLE blacklist (blacklistId INTEGER PRIMARY KEY AUTOINCREMENT, blacklistEntry TEXT NOT NULL);
             CREATE TABLE categories (categoryId INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL);
             CREATE TABLE entries (entryId INTEGER PRIMARY KEY AUTOINCREMENT, bonId INTEGER NOT NULL, productId INTEGER NOT NULL, price REAL NOT NULL);
             CREATE TABLE products (productId INTEGER PRIMARY KEY AUTOINCREMENT, categoryId INTEGER NOT NULL, product TEXT NOT NULL);
@@ -43,6 +51,22 @@ impl Database {
         self.connection
             .execute(query)
             .expect("Couldn't insert product");
+    }
+
+    pub fn get_blacklist(&self) -> Vec<String> {
+        let mut blacklist: Vec<String> = Vec::new();
+        let query = "SELECT blacklistEntry FROM blacklist";
+        for row in self
+            .connection
+            .prepare(query)
+            .expect("Couldn't prepare statement")
+            .into_iter()
+            .map(|row| row.expect("Couldn't fetch row"))
+        {
+            let blacklist_entry = row.read::<&str, _>("blacklistEntry");
+            blacklist.push(blacklist_entry.to_string());
+        }
+        blacklist
     }
 
     pub fn get_bons(&self) -> Vec<Bon> {
@@ -153,12 +177,29 @@ mod tests {
                 true
             })
             .expect("Couldn't execute query");
-        assert_eq!(5, tables.len());
+        assert_eq!(6, tables.len());
+        assert!(tables.contains(&"blacklist".to_string()));
         assert!(tables.contains(&"bons".to_string()));
         assert!(tables.contains(&"categories".to_string()));
         assert!(tables.contains(&"entries".to_string()));
         assert!(tables.contains(&"products".to_string()));
         assert!(tables.contains(&"sqlite_sequence".to_string()));
+    }
+
+    #[test]
+    fn blacklist() {
+        let database = Database::new(":memory:");
+        database.create_database();
+
+        database.add_blacklist_entry("first");
+        database.add_blacklist_entry("second");
+        database.add_blacklist_entry("third");
+
+        let blacklist = database.get_blacklist();
+        assert_eq!(3, blacklist.len());
+        assert!(blacklist.contains(&"first".to_string()));
+        assert!(blacklist.contains(&"second".to_string()));
+        assert!(blacklist.contains(&"third".to_string()));
     }
 
     #[test]
