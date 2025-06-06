@@ -20,6 +20,7 @@ pub enum AppEvent {
     GoImportState,
     GoOcrState,
     NextItem,
+    PerformOCR,
     PreviousItem,
     Quit,
 }

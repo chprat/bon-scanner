@@ -6,6 +6,8 @@ use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     widgets::ListState,
 };
+use regex::Regex;
+use rusty_tesseract::{Args, Image};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -18,6 +20,7 @@ pub struct App {
     pub import_list: FileList,
     import_path: String,
     pub ocr_file: String,
+    pub ocr_text: Vec<String>,
     running: bool,
 }
 
@@ -70,6 +73,7 @@ impl Default for App {
             },
             import_path: settings.import_path(),
             ocr_file: String::new(),
+            ocr_text: Vec::new(),
             running: true,
         }
     }
@@ -139,6 +143,8 @@ impl App {
 
     fn go_ocr_state(&mut self) {
         self.current_state = AppState::OCR;
+        self.ocr_text = vec!["Processing..".to_string()];
+        self.events.send(AppEvent::PerformOCR);
     }
 
     pub fn new() -> Self {
@@ -164,6 +170,51 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    pub fn perform_ocr(&mut self) {
+        let img = Image::from_path(&self.ocr_file).expect("Failed to load image for OCR");
+
+        let args = Args {
+            lang: "deu".to_string(),
+            config_variables: HashMap::from([(
+                "tessedit_char_whitelist".into(),
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZöäüÖÄÜß1234567890., &-%$@€:"
+                    .into(),
+            )]),
+            dpi: Some(150),
+            psm: Some(6),
+            oem: Some(3),
+        };
+
+        let ocr_text =
+            rusty_tesseract::image_to_string(&img, &args).expect("Could not perform OCR");
+
+        self.ocr_text = ocr_text
+            .split('\n')
+            .map(|line| line.trim().to_string())
+            .filter(|line| line.len() > 1)
+            .map(|line| {
+                // delete the last element, when it's a single character
+                let re = Regex::new(r" \w$").expect("Could not compile regex");
+                if let Some(found) = re.find(&line) {
+                    line[..found.start()].to_string()
+                } else {
+                    line.to_string()
+                }
+            })
+            .filter(|line| {
+                // the last element of the line must contain a digit
+                let elems = line.split(" ").collect::<Vec<&str>>();
+                let re = Regex::new(r"\d").expect("Could not compile regex");
+                re.is_match(elems[elems.len() - 1])
+            })
+            .filter(|line| {
+                // filter lines that have more than 6 digit numbers
+                let re = Regex::new(r"\d{6,}").expect("Could not compile regex");
+                !re.is_match(line)
+            })
+            .collect::<Vec<String>>();
     }
 
     fn previous_item(&mut self) {
@@ -210,6 +261,7 @@ impl App {
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::NextItem => self.next_item(),
                     AppEvent::GoOcrState => self.go_ocr_state(),
+                    AppEvent::PerformOCR => self.perform_ocr(),
                     AppEvent::PreviousItem => self.previous_item(),
                     AppEvent::Quit => self.quit(),
                 },

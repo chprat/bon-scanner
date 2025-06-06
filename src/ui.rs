@@ -5,7 +5,7 @@ use ratatui::{
     text::Line,
     widgets::{
         Block, BorderType, Clear, HighlightSpacing, List, ListItem, Paragraph, StatefulWidget,
-        Widget,
+        Widget, Wrap,
     },
 };
 
@@ -123,7 +123,8 @@ impl App {
             .border_type(BorderType::Rounded);
 
         Widget::render(Clear, ocr_area, buf);
-        Paragraph::new("Processing...")
+        Paragraph::new(self.ocr_text.join("\n"))
+            .wrap(Wrap { trim: true })
             .centered()
             .block(block)
             .render(ocr_area, buf);
