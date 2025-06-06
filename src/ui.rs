@@ -32,7 +32,7 @@ impl App {
     }
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Press `Esc`, `Ctrl-C` or `q` to stop running.").render(area, buf);
+        Paragraph::new("Quit: q").render(area, buf);
     }
 
     fn render_list(&mut self, area: Rect, buf: &mut Buffer) {

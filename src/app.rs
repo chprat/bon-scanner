@@ -3,7 +3,7 @@ use crate::event::{AppEvent, Event, EventHandler};
 use crate::settings;
 use ratatui::{
     DefaultTerminal,
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
+    crossterm::event::{KeyCode, KeyEvent},
 };
 
 pub struct App {
@@ -29,10 +29,7 @@ impl Default for App {
 impl App {
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
         match key_event.code {
-            KeyCode::Esc | KeyCode::Char('q') => self.events.send(AppEvent::Quit),
-            KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => {
-                self.events.send(AppEvent::Quit)
-            }
+            KeyCode::Char('q') => self.events.send(AppEvent::Quit),
             _ => {}
         }
         Ok(())
