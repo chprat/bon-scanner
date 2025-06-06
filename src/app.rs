@@ -30,6 +30,7 @@ pub struct FileList {
 
 pub enum AppState {
     Home,
+    Import,
 }
 
 pub struct SummaryEntry {
@@ -96,6 +97,7 @@ impl App {
 
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
         match key_event.code {
+            KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
             KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
             KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
             KeyCode::Char('q') => self.events.send(AppEvent::Quit),
@@ -106,6 +108,10 @@ impl App {
 
     fn go_home_state(&mut self) {
         self.current_state = AppState::Home;
+    }
+
+    fn go_import_state(&mut self) {
+        self.current_state = AppState::Import;
     }
 
     pub fn new() -> Self {
@@ -150,6 +156,7 @@ impl App {
                 Event::App(app_event) => match app_event {
                     AppEvent::CalculateSummary => self.calculate_summary(),
                     AppEvent::GoHomeState => self.go_home_state(),
+                    AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::NextItem => self.next_item(),
                     AppEvent::PreviousItem => self.previous_item(),
                     AppEvent::Quit => self.quit(),
@@ -162,6 +169,13 @@ impl App {
     pub fn tick(&self) {}
 
     pub fn quit(&mut self) {
-        self.running = false;
+        match self.current_state {
+            AppState::Home => {
+                self.running = false;
+            }
+            AppState::Import => {
+                self.events.send(AppEvent::GoHomeState);
+            }
+        }
     }
 }
