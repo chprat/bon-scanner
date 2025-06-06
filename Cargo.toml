@@ -6,12 +6,14 @@ edition = "2024"
 [dependencies]
 color-eyre = "0.6.4"
 config = "0.15.5"
+# we need to use the same version of crossterm as ratatui
 crossterm = { version = "0.28.1", features = ["event-stream"] }
 dirs = "6.0.0"
 futures = "0.3.31"
 ratatui = "0.29.0"
+regex = "1.11.1"
 rusty-tesseract = "1.1.10"
-sqlite = "0.36.1"
+sqlite = "0.37.0"
 tokio = { version = "1.45.1", features = ["full"] }
 
 # ensure rusty-tesseract runs fast in dev mode and doesn't print debug messages
