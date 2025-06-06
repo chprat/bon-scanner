@@ -1,10 +1,11 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
-    widgets::{Block, BorderType, Paragraph, Widget},
+    text::Line,
+    widgets::{Block, BorderType, List, ListItem, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::app::App;
+use crate::{app::App, database};
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -41,10 +42,17 @@ impl App {
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
-        let text = "List of Bons";
+        let items: Vec<ListItem> = self.bon_list.items.iter().map(ListItem::from).collect();
 
-        let paragraph = Paragraph::new(text).block(block).centered();
+        let list = List::new(items).block(block);
 
-        paragraph.render(area, buf);
+        StatefulWidget::render(list, area, buf, &mut self.bon_list.state);
+    }
+}
+
+impl From<&database::Bon> for ListItem<'_> {
+    fn from(value: &database::Bon) -> Self {
+        let line = Line::from(format!("{} {} €", value.date, value.price));
+        ListItem::new(line)
     }
 }
