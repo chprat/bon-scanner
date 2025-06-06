@@ -1,14 +1,17 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
-    style::{Modifier, Style, palette::tailwind::CYAN},
+    style::{Modifier, Style, Stylize, palette::tailwind::CYAN},
     text::Line,
     widgets::{
         Block, BorderType, HighlightSpacing, List, ListItem, Paragraph, StatefulWidget, Widget,
     },
 };
 
-use crate::{app::App, database};
+use crate::{
+    app::{App, SummaryEntry},
+    database,
+};
 
 const SELECTED_STYLE: Style = Style::new().bg(CYAN.c600).add_modifier(Modifier::BOLD);
 const FOOTER_STYLE: Style = Style::new().fg(CYAN.c600);
@@ -81,11 +84,11 @@ impl App {
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
-        let text = "Summary of the selected bon";
+        let items: Vec<ListItem> = self.bon_summary.iter().map(ListItem::from).collect();
 
-        let paragraph = Paragraph::new(text).block(block).centered();
+        let list = List::new(items).block(block);
 
-        paragraph.render(area, buf);
+        Widget::render(list, area, buf);
     }
 }
 
@@ -102,6 +105,17 @@ impl From<&database::Entry> for ListItem<'_> {
             "{} {} {} €",
             value.category, value.product, value.price
         ));
+        ListItem::new(line)
+    }
+}
+
+impl From<&SummaryEntry> for ListItem<'_> {
+    fn from(value: &SummaryEntry) -> Self {
+        let line = if value.category != "total" {
+            Line::from(format!("{} {} €", value.category, value.total))
+        } else {
+            Line::from(format!("{} {} €", value.category, value.total)).add_modifier(Modifier::BOLD)
+        };
         ListItem::new(line)
     }
 }
