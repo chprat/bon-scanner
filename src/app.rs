@@ -8,6 +8,7 @@ use ratatui::{
 };
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 
 pub struct App {
     pub bon_list: BonList,
@@ -15,6 +16,8 @@ pub struct App {
     pub current_state: AppState,
     events: EventHandler,
     pub import_list: FileList,
+    import_path: String,
+    pub ocr_file: String,
     running: bool,
 }
 
@@ -65,6 +68,8 @@ impl Default for App {
                 items: import_list,
                 state: ListState::default(),
             },
+            import_path: settings.import_path(),
+            ocr_file: String::new(),
             running: true,
         }
     }
@@ -104,7 +109,16 @@ impl App {
             KeyCode::Char('q') => self.events.send(AppEvent::Quit),
             KeyCode::Enter => {
                 if matches!(self.current_state, AppState::Import) {
-                    self.events.send(AppEvent::GoOcrState)
+                    let file_path = Path::new(&self.import_path);
+                    if let Some(i) = self.import_list.state.selected() {
+                        let file_name = self.import_list.items[i].clone();
+                        self.ocr_file = file_path
+                            .join(file_name)
+                            .to_str()
+                            .expect("Couldn't convert path to string")
+                            .to_string();
+                    }
+                    self.events.send(AppEvent::GoOcrState);
                 }
             }
             KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
