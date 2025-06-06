@@ -19,8 +19,8 @@ pub struct App {
     events: EventHandler,
     pub import_list: FileList,
     import_path: String,
+    pub ocr_list: OcrList,
     pub ocr_file: String,
-    pub ocr_text: Vec<String>,
     running: bool,
 }
 
@@ -30,6 +30,11 @@ pub struct BonList {
 }
 
 pub struct FileList {
+    pub items: Vec<String>,
+    pub state: ListState,
+}
+
+pub struct OcrList {
     pub items: Vec<String>,
     pub state: ListState,
 }
@@ -72,8 +77,11 @@ impl Default for App {
                 state: ListState::default(),
             },
             import_path: settings.import_path(),
+            ocr_list: OcrList {
+                items: Vec::new(),
+                state: ListState::default(),
+            },
             ocr_file: String::new(),
-            ocr_text: Vec::new(),
             running: true,
         }
     }
@@ -143,7 +151,7 @@ impl App {
 
     fn go_ocr_state(&mut self) {
         self.current_state = AppState::OCR;
-        self.ocr_text = vec!["Processing..".to_string()];
+        self.ocr_list.items = vec!["Processing..".to_string()];
         self.events.send(AppEvent::PerformOCR);
     }
 
@@ -168,7 +176,13 @@ impl App {
                     }
                 }
             }
-            _ => {}
+            AppState::OCR => {
+                if let Some(i) = self.ocr_list.state.selected() {
+                    if i < self.ocr_list.items.len() - 1 {
+                        self.ocr_list.state.select_next();
+                    }
+                }
+            }
         }
     }
 
@@ -190,7 +204,7 @@ impl App {
         let ocr_text =
             rusty_tesseract::image_to_string(&img, &args).expect("Could not perform OCR");
 
-        self.ocr_text = ocr_text
+        self.ocr_list.items = ocr_text
             .split('\n')
             .map(|line| line.trim().to_string())
             .filter(|line| line.len() > 1)
@@ -210,11 +224,15 @@ impl App {
                 re.is_match(elems[elems.len() - 1])
             })
             .filter(|line| {
-                // filter lines that have more than 6 digit numbers
-                let re = Regex::new(r"\d{6,}").expect("Could not compile regex");
-                !re.is_match(line)
+                // the line must contain some sort of delimiter
+                let re = Regex::new(r"[,.:-]").expect("Could not compile regex");
+                re.is_match(line)
             })
             .collect::<Vec<String>>();
+
+        if !self.ocr_list.items.is_empty() {
+            self.ocr_list.state.select_first();
+        }
     }
 
     fn previous_item(&mut self) {
@@ -234,7 +252,13 @@ impl App {
                     }
                 }
             }
-            _ => {}
+            AppState::OCR => {
+                if let Some(i) = self.ocr_list.state.selected() {
+                    if i > 0 {
+                        self.ocr_list.state.select_previous();
+                    }
+                }
+            }
         }
     }
 
@@ -245,6 +269,9 @@ impl App {
         }
         if !self.import_list.items.is_empty() {
             self.import_list.state.select_first();
+        }
+        if !self.ocr_list.items.is_empty() {
+            self.ocr_list.state.select_first();
         }
         while self.running {
             terminal.draw(|frame| frame.render_widget(&mut self, frame.area()))?;

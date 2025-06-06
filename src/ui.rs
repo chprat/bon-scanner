@@ -5,7 +5,7 @@ use ratatui::{
     text::Line,
     widgets::{
         Block, BorderType, Clear, HighlightSpacing, List, ListItem, Paragraph, StatefulWidget,
-        Widget, Wrap,
+        Widget,
     },
 };
 
@@ -115,19 +115,27 @@ impl App {
     }
 
     fn render_ocr(&mut self, area: Rect, buf: &mut Buffer) {
-        let ocr_area = popup_area(area, 50, 50);
+        let ocr_area = popup_area(area, 80, 80);
 
         let block = Block::bordered()
             .title("OCR")
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
-        Widget::render(Clear, ocr_area, buf);
-        Paragraph::new(self.ocr_text.join("\n"))
-            .wrap(Wrap { trim: true })
-            .centered()
+        let items: Vec<ListItem> = self
+            .ocr_list
+            .items
+            .iter()
+            .map(|elem| ListItem::from(elem.as_str()))
+            .collect();
+
+        let list = List::new(items)
             .block(block)
-            .render(ocr_area, buf);
+            .highlight_style(SELECTED_STYLE)
+            .highlight_spacing(HighlightSpacing::Always);
+
+        Widget::render(Clear, ocr_area, buf);
+        StatefulWidget::render(list, ocr_area, buf, &mut self.ocr_list.state);
     }
 
     fn render_summary(&mut self, area: Rect, buf: &mut Buffer) {
