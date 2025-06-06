@@ -1,11 +1,17 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
+    style::{Modifier, Style, palette::tailwind::CYAN},
     text::Line,
-    widgets::{Block, BorderType, List, ListItem, Paragraph, StatefulWidget, Widget},
+    widgets::{
+        Block, BorderType, HighlightSpacing, List, ListItem, Paragraph, StatefulWidget, Widget,
+    },
 };
 
 use crate::{app::App, database};
+
+const SELECTED_STYLE: Style = Style::new().bg(CYAN.c600).add_modifier(Modifier::BOLD);
+const FOOTER_STYLE: Style = Style::new().fg(CYAN.c600);
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -33,7 +39,9 @@ impl App {
     }
 
     fn render_footer(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Quit: q").render(area, buf);
+        Paragraph::new("Next: j | Previous: k | Quit: q")
+            .style(FOOTER_STYLE)
+            .render(area, buf);
     }
 
     fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
@@ -44,7 +52,10 @@ impl App {
 
         let items: Vec<ListItem> = self.bon_list.items.iter().map(ListItem::from).collect();
 
-        let list = List::new(items).block(block);
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_spacing(HighlightSpacing::Always);
 
         StatefulWidget::render(list, area, buf, &mut self.bon_list.state);
     }
