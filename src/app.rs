@@ -19,6 +19,7 @@ pub struct App {
     events: EventHandler,
     pub import_list: FileList,
     import_path: String,
+    pub ocr_blacklist: Vec<String>,
     pub ocr_list: OcrList,
     pub ocr_file: String,
     running: bool,
@@ -59,6 +60,7 @@ impl Default for App {
             database.create_database();
         }
         let bons = database.get_bons();
+        let blacklist = database.get_blacklist();
         let import_list = fs::read_dir(settings.import_path())
             .expect("Couldn't read bons directory")
             .filter_map(Result::ok)
@@ -77,6 +79,7 @@ impl Default for App {
                 state: ListState::default(),
             },
             import_path: settings.import_path(),
+            ocr_blacklist: blacklist,
             ocr_list: OcrList {
                 items: Vec::new(),
                 state: ListState::default(),
@@ -228,6 +231,7 @@ impl App {
                 let re = Regex::new(r"[,.:-]").expect("Could not compile regex");
                 re.is_match(line)
             })
+            .filter(|line| !self.ocr_blacklist.iter().any(|elem| line.contains(elem)))
             .collect::<Vec<String>>();
 
         if !self.ocr_list.items.is_empty() {
