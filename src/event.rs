@@ -18,6 +18,7 @@ pub enum AppEvent {
     CalculateSummary,
     GoHomeState,
     GoImportState,
+    GoOcrState,
     NextItem,
     PreviousItem,
     Quit,

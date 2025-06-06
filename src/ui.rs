@@ -36,6 +36,10 @@ impl Widget for &mut App {
         if matches!(self.current_state, AppState::Import) {
             self.render_import(area, buf);
         }
+
+        if matches!(self.current_state, AppState::OCR) {
+            self.render_ocr(area, buf);
+        }
     }
 }
 
@@ -64,7 +68,8 @@ impl App {
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state {
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
-            AppState::Import => "Next: j | Previous: k | Close: Esc | Quit: q",
+            AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
+            AppState::OCR => "Close: Esc | Quit: q",
         };
         Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
     }
@@ -107,6 +112,21 @@ impl App {
             .highlight_spacing(HighlightSpacing::Always);
 
         StatefulWidget::render(list, area, buf, &mut self.bon_list.state);
+    }
+
+    fn render_ocr(&mut self, area: Rect, buf: &mut Buffer) {
+        let ocr_area = popup_area(area, 50, 50);
+
+        let block = Block::bordered()
+            .title("OCR")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        Widget::render(Clear, ocr_area, buf);
+        Paragraph::new("Processing...")
+            .centered()
+            .block(block)
+            .render(ocr_area, buf);
     }
 
     fn render_summary(&mut self, area: Rect, buf: &mut Buffer) {

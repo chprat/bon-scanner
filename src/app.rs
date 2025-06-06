@@ -31,6 +31,7 @@ pub struct FileList {
 pub enum AppState {
     Home,
     Import,
+    OCR,
 }
 
 pub struct SummaryEntry {
@@ -101,6 +102,11 @@ impl App {
             KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
             KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
             KeyCode::Char('q') => self.events.send(AppEvent::Quit),
+            KeyCode::Enter => {
+                if matches!(self.current_state, AppState::Import) {
+                    self.events.send(AppEvent::GoOcrState)
+                }
+            }
             KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
             _ => {}
         }
@@ -112,7 +118,13 @@ impl App {
     }
 
     fn go_import_state(&mut self) {
-        self.current_state = AppState::Import;
+        if matches!(self.current_state, AppState::Home) {
+            self.current_state = AppState::Import;
+        }
+    }
+
+    fn go_ocr_state(&mut self) {
+        self.current_state = AppState::OCR;
     }
 
     pub fn new() -> Self {
@@ -136,6 +148,7 @@ impl App {
                     }
                 }
             }
+            _ => {}
         }
     }
 
@@ -156,6 +169,7 @@ impl App {
                     }
                 }
             }
+            _ => {}
         }
     }
 
@@ -181,6 +195,7 @@ impl App {
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::NextItem => self.next_item(),
+                    AppEvent::GoOcrState => self.go_ocr_state(),
                     AppEvent::PreviousItem => self.previous_item(),
                     AppEvent::Quit => self.quit(),
                 },
