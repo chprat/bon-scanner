@@ -143,6 +143,8 @@ impl App {
     }
 
     fn go_home_state(&mut self) {
+        self.ocr_list.items.clear();
+        self.ocr_list.state = ListState::default();
         self.current_state = AppState::Home;
     }
 
@@ -154,8 +156,10 @@ impl App {
 
     fn go_ocr_state(&mut self) {
         self.current_state = AppState::OCR;
-        self.ocr_list.items = vec!["Processing..".to_string()];
-        self.events.send(AppEvent::PerformOCR);
+        if self.ocr_list.items.is_empty() {
+            self.ocr_list.items = vec!["Processing..".to_string()];
+            self.events.send(AppEvent::PerformOCR);
+        }
     }
 
     pub fn new() -> Self {
