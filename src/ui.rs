@@ -17,7 +17,7 @@ use crate::{
 const SELECTED_STYLE: Style = Style::new().bg(CYAN.c600).add_modifier(Modifier::BOLD);
 const FOOTER_STYLE: Style = Style::new().fg(CYAN.c600);
 
-impl Widget for &mut App {
+impl Widget for &mut App<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let [main_area, footer_area] =
             Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
@@ -48,7 +48,7 @@ impl Widget for &mut App {
     }
 }
 
-impl App {
+impl App<'_> {
     fn render_details(&self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered()
             .title("Details")
@@ -71,20 +71,24 @@ impl App {
     }
 
     fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
-        let edit_area = popup_area(area, 50, 50);
+        let popup_area = popup_area(area, 30, 50);
+        let vertical = Layout::vertical([Constraint::Length(3)]).flex(Flex::Center);
+        let [edit_area] = vertical.areas(popup_area);
 
         let block = Block::bordered()
             .title("Add to blacklist")
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
+        self.edit_field.set_block(block);
+
         Widget::render(Clear, edit_area, buf);
-        Widget::render(block, edit_area, buf);
+        Widget::render(&self.edit_field, edit_area, buf);
     }
 
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state {
-            AppState::Blacklist => "Close: Esc | Quit: q",
+            AppState::Blacklist => "Add: Enter | Close: Esc",
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
             AppState::OCR => "Blacklist Entry: b | Close: Esc | Quit: q",

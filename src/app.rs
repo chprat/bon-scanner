@@ -11,11 +11,14 @@ use rusty_tesseract::{Args, Image};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use tui_textarea::{CursorMove, TextArea};
 
-pub struct App {
+pub struct App<'a> {
     pub bon_list: BonList,
     pub bon_summary: Vec<SummaryEntry>,
     pub current_state: AppState,
+    database: database::Database,
+    pub edit_field: TextArea<'a>,
     events: EventHandler,
     pub import_list: FileList,
     import_path: String,
@@ -52,7 +55,7 @@ pub struct SummaryEntry {
     pub total: f64,
 }
 
-impl Default for App {
+impl Default for App<'_> {
     fn default() -> Self {
         let settings = settings::Settings::new();
         let database_exists = settings.database_exists();
@@ -74,6 +77,8 @@ impl Default for App {
             },
             bon_summary: Vec::new(),
             current_state: AppState::Home,
+            database,
+            edit_field: TextArea::default(),
             events: EventHandler::new(),
             import_list: FileList {
                 items: import_list,
@@ -91,7 +96,7 @@ impl Default for App {
     }
 }
 
-impl App {
+impl App<'_> {
     fn calculate_summary(&mut self) {
         if let Some(i) = self.bon_list.state.selected() {
             let bon = &self.bon_list.items[i];
@@ -118,38 +123,49 @@ impl App {
     }
 
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
-        match key_event.code {
-            KeyCode::Char('b') => {
-                if matches!(self.current_state, AppState::OCR) {
-                    self.events.send(AppEvent::GoBlacklistState)
-                }
-            }
-            KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
-            KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
-            KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
-            KeyCode::Char('q') => self.events.send(AppEvent::Quit),
-            KeyCode::Enter => {
-                if matches!(self.current_state, AppState::Import) {
-                    let file_path = Path::new(&self.import_path);
-                    if let Some(i) = self.import_list.state.selected() {
-                        let file_name = self.import_list.items[i].clone();
-                        self.ocr_file = file_path
-                            .join(file_name)
-                            .to_str()
-                            .expect("Couldn't convert path to string")
-                            .to_string();
-                    }
+        if matches!(self.current_state, AppState::Blacklist) {
+            match key_event.code {
+                KeyCode::Enter => {
+                    self.database
+                        .add_blacklist_entry(self.edit_field.lines()[0].as_str());
                     self.events.send(AppEvent::GoOcrState);
                 }
+                KeyCode::Esc => self.events.send(AppEvent::GoOcrState),
+                _ => _ = self.edit_field.input(key_event),
             }
-            KeyCode::Esc => {
-                if matches!(self.current_state, AppState::Blacklist) {
-                    self.events.send(AppEvent::GoOcrState)
-                } else {
-                    self.events.send(AppEvent::GoHomeState)
+        } else {
+            match key_event.code {
+                KeyCode::Char('b') => {
+                    if matches!(self.current_state, AppState::OCR) {
+                        self.edit_field.move_cursor(CursorMove::End);
+                        self.edit_field.delete_line_by_head();
+                        if let Some(i) = self.ocr_list.state.selected() {
+                            self.edit_field.insert_str(self.ocr_list.items[i].as_str());
+                        }
+                        self.events.send(AppEvent::GoBlacklistState);
+                    }
                 }
+                KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
+                KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
+                KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
+                KeyCode::Char('q') => self.events.send(AppEvent::Quit),
+                KeyCode::Enter => {
+                    if matches!(self.current_state, AppState::Import) {
+                        let file_path = Path::new(&self.import_path);
+                        if let Some(i) = self.import_list.state.selected() {
+                            let file_name = self.import_list.items[i].clone();
+                            self.ocr_file = file_path
+                                .join(file_name)
+                                .to_str()
+                                .expect("Couldn't convert path to string")
+                                .to_string();
+                        }
+                        self.events.send(AppEvent::GoOcrState);
+                    }
+                }
+                KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
+                _ => {}
             }
-            _ => {}
         }
         Ok(())
     }

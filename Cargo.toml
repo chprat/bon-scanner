@@ -15,6 +15,7 @@ regex = "1.11.1"
 rusty-tesseract = "1.1.10"
 sqlite = "0.37.0"
 tokio = { version = "1.45.1", features = ["full"] }
+tui-textarea = "0.7.0"
 
 # ensure rusty-tesseract runs fast in dev mode and doesn't print debug messages
 [profile.dev.package.rusty-tesseract]
