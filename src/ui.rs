@@ -33,6 +33,11 @@ impl Widget for &mut App {
         self.render_list(list_area, buf);
         self.render_summary(summary_area, buf);
 
+        if matches!(self.current_state, AppState::Blacklist) {
+            self.render_ocr(area, buf);
+            self.render_edit(area, buf);
+        }
+
         if matches!(self.current_state, AppState::Import) {
             self.render_import(area, buf);
         }
@@ -65,11 +70,24 @@ impl App {
         Widget::render(list, area, buf);
     }
 
+    fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
+        let edit_area = popup_area(area, 50, 50);
+
+        let block = Block::bordered()
+            .title("Add to blacklist")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        Widget::render(Clear, edit_area, buf);
+        Widget::render(block, edit_area, buf);
+    }
+
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state {
+            AppState::Blacklist => "Close: Esc | Quit: q",
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
-            AppState::OCR => "Close: Esc | Quit: q",
+            AppState::OCR => "Blacklist Entry: b | Close: Esc | Quit: q",
         };
         Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
     }

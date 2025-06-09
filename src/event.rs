@@ -16,6 +16,7 @@ pub enum Event {
 #[derive(Clone, Debug)]
 pub enum AppEvent {
     CalculateSummary,
+    GoBlacklistState,
     GoHomeState,
     GoImportState,
     GoOcrState,

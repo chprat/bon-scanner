@@ -41,6 +41,7 @@ pub struct OcrList {
 }
 
 pub enum AppState {
+    Blacklist,
     Home,
     Import,
     OCR,
@@ -118,6 +119,11 @@ impl App {
 
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
         match key_event.code {
+            KeyCode::Char('b') => {
+                if matches!(self.current_state, AppState::OCR) {
+                    self.events.send(AppEvent::GoBlacklistState)
+                }
+            }
             KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
             KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
             KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
@@ -136,10 +142,22 @@ impl App {
                     self.events.send(AppEvent::GoOcrState);
                 }
             }
-            KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
+            KeyCode::Esc => {
+                if matches!(self.current_state, AppState::Blacklist) {
+                    self.events.send(AppEvent::GoOcrState)
+                } else {
+                    self.events.send(AppEvent::GoHomeState)
+                }
+            }
             _ => {}
         }
         Ok(())
+    }
+
+    fn go_blacklist_state(&mut self) {
+        if matches!(self.current_state, AppState::OCR) {
+            self.current_state = AppState::Blacklist;
+        }
     }
 
     fn go_home_state(&mut self) {
@@ -190,6 +208,7 @@ impl App {
                     }
                 }
             }
+            _ => {}
         }
     }
 
@@ -267,6 +286,7 @@ impl App {
                     }
                 }
             }
+            _ => {}
         }
     }
 
@@ -292,10 +312,11 @@ impl App {
                 }
                 Event::App(app_event) => match app_event {
                     AppEvent::CalculateSummary => self.calculate_summary(),
+                    AppEvent::GoBlacklistState => self.go_blacklist_state(),
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
-                    AppEvent::NextItem => self.next_item(),
                     AppEvent::GoOcrState => self.go_ocr_state(),
+                    AppEvent::NextItem => self.next_item(),
                     AppEvent::PerformOCR => self.perform_ocr(),
                     AppEvent::PreviousItem => self.previous_item(),
                     AppEvent::Quit => self.quit(),
