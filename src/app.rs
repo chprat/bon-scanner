@@ -150,6 +150,13 @@ impl App<'_> {
                 KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
                 KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
                 KeyCode::Char('q') => self.events.send(AppEvent::Quit),
+                KeyCode::Char('x') => {
+                    if matches!(self.current_state, AppState::OCR) {
+                        if let Some(i) = self.ocr_list.state.selected() {
+                            self.ocr_list.items.remove(i);
+                        }
+                    }
+                }
                 KeyCode::Enter => {
                     if matches!(self.current_state, AppState::Import) {
                         let file_path = Path::new(&self.import_path);

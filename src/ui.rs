@@ -91,7 +91,7 @@ impl App<'_> {
             AppState::Blacklist => "Add: Enter | Close: Esc",
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
-            AppState::OCR => "Blacklist Entry: b | Close: Esc | Quit: q",
+            AppState::OCR => "Blacklist Entry: b  | Delete Entry: x | Close: Esc | Quit: q",
         };
         Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
     }
