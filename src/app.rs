@@ -129,6 +129,7 @@ impl App<'_> {
                     self.database
                         .add_blacklist_entry(self.edit_field.lines()[0].as_str());
                     self.events.send(AppEvent::GoOcrState);
+                    self.events.send(AppEvent::UpdateFromDatabase);
                 }
                 KeyCode::Esc => self.events.send(AppEvent::GoOcrState),
                 _ => _ = self.edit_field.input(key_event),
@@ -335,11 +336,23 @@ impl App<'_> {
                     AppEvent::NextItem => self.next_item(),
                     AppEvent::PerformOCR => self.perform_ocr(),
                     AppEvent::PreviousItem => self.previous_item(),
+                    AppEvent::UpdateFromDatabase => self.update_from_database(),
                     AppEvent::Quit => self.quit(),
                 },
             }
         }
         Ok(())
+    }
+
+    pub fn update_from_database(&mut self) {
+        if matches!(self.current_state, AppState::OCR) {
+            self.ocr_blacklist = self.database.get_blacklist();
+            let ocr_list = self.ocr_list.items.clone();
+            self.ocr_list.items = ocr_list
+                .into_iter()
+                .filter(|line| !self.ocr_blacklist.iter().any(|elem| line.contains(elem)))
+                .collect::<Vec<String>>();
+        }
     }
 
     pub fn tick(&self) {}

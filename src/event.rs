@@ -23,6 +23,7 @@ pub enum AppEvent {
     NextItem,
     PerformOCR,
     PreviousItem,
+    UpdateFromDatabase,
     Quit,
 }
 
