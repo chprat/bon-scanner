@@ -22,6 +22,7 @@ pub struct App<'a> {
     events: EventHandler,
     pub import_list: FileList,
     import_path: String,
+    pub new_bon_list: NewBonList,
     pub ocr_blacklist: Vec<String>,
     pub ocr_list: OcrList,
     pub ocr_file: String,
@@ -35,6 +36,14 @@ pub struct BonList {
 
 pub struct FileList {
     pub items: Vec<String>,
+    pub state: ListState,
+}
+
+pub struct NewBonList {
+    pub date: String,
+    pub items: Vec<database::Entry>,
+    pub price_calc: f64,
+    pub price_ocr: f64,
     pub state: ListState,
 }
 
@@ -98,6 +107,13 @@ impl Default for App<'_> {
                 state: ListState::default(),
             },
             import_path: settings.import_path(),
+            new_bon_list: NewBonList {
+                date: String::new(),
+                items: Vec::new(),
+                price_calc: 0.0,
+                price_ocr: 0.0,
+                state: ListState::default(),
+            },
             ocr_blacklist: blacklist,
             ocr_list: OcrList {
                 items: Vec::new(),
@@ -133,6 +149,60 @@ impl App<'_> {
                 total: total_sum,
             });
         }
+    }
+
+    fn convert_to_bon(&mut self) {
+        self.new_bon_list.date = String::new();
+        self.new_bon_list.items.clear();
+        self.new_bon_list.price_calc = 0.0;
+        self.new_bon_list.price_ocr = 0.0;
+
+        self.ocr_list
+            .items
+            .iter()
+            .for_each(|elem| match elem.ocr_type {
+                OcrType::Date => {
+                    if let Some(date) = Self::extract_date(&elem.name) {
+                        self.new_bon_list.date = date;
+                    }
+                }
+                OcrType::Entry => {
+                    if let Some(name) = Self::extract_name(&elem.name) {
+                        if let Some(price) = Self::extract_price(&elem.name) {
+                            self.new_bon_list.items.push(database::Entry {
+                                category: String::new(),
+                                product: name,
+                                price,
+                            });
+                        }
+                    }
+                }
+                OcrType::Sum => {
+                    if let Some(sum) = Self::extract_price(&elem.name) {
+                        self.new_bon_list.price_ocr = sum;
+                    }
+                }
+            });
+
+        if !self.new_bon_list.items.is_empty() {
+            self.new_bon_list.state.select_first();
+        }
+    }
+
+    fn extract_date(line: &str) -> Option<String> {
+        let re = Regex::new(r"\d{2}[\.,]\d{2}[\.,]\d{4}").expect("Could not compile regex");
+        re.find(line).map(|m| m.as_str().to_string())
+    }
+
+    fn extract_name(line: &str) -> Option<String> {
+        let name = line.rsplit_once(' ');
+        name.map(|name| name.0.to_string())
+    }
+
+    fn extract_price(line: &str) -> Option<f64> {
+        let re = Regex::new(r"(\d*[\.,]\d*)").expect("Could not compile regex");
+        re.find(line)
+            .and_then(|m| m.as_str().replace(',', ".").parse::<f64>().ok())
     }
 
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
@@ -185,6 +255,8 @@ impl App<'_> {
                                 .to_string();
                         }
                         self.events.send(AppEvent::GoOcrState);
+                    } else if matches!(self.current_state, AppState::OCR) {
+                        self.events.send(AppEvent::ConvertToBon);
                     }
                 }
                 KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
@@ -395,6 +467,7 @@ impl App<'_> {
                 }
                 Event::App(app_event) => match app_event {
                     AppEvent::CalculateSummary => self.calculate_summary(),
+                    AppEvent::ConvertToBon => self.convert_to_bon(),
                     AppEvent::GoBlacklistState => self.go_blacklist_state(),
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
