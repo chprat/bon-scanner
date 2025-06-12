@@ -22,21 +22,26 @@ impl Widget for &mut App<'_> {
         let [main_area, footer_area] =
             Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
 
-        self.render_home(main_area, buf);
+        match self.current_state {
+            AppState::Blacklist => {
+                self.render_home(main_area, buf);
+                self.render_ocr(main_area, buf);
+                self.render_edit(main_area, buf);
+            }
+            AppState::Home => {
+                self.render_home(main_area, buf);
+            }
+            AppState::Import => {
+                self.render_home(main_area, buf);
+                self.render_import(main_area, buf);
+            }
+            AppState::OCR => {
+                self.render_home(main_area, buf);
+                self.render_ocr(main_area, buf);
+            }
+        }
+
         self.render_footer(footer_area, buf);
-
-        if matches!(self.current_state, AppState::Blacklist) {
-            self.render_ocr(area, buf);
-            self.render_edit(area, buf);
-        }
-
-        if matches!(self.current_state, AppState::Import) {
-            self.render_import(area, buf);
-        }
-
-        if matches!(self.current_state, AppState::OCR) {
-            self.render_ocr(area, buf);
-        }
     }
 }
 
