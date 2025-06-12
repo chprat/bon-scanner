@@ -253,6 +253,11 @@ impl App<'_> {
                         if let Some(i) = self.ocr_list.state.selected() {
                             self.ocr_list.items.remove(i);
                         }
+                    } else if matches!(self.current_state, AppState::ConvertBon) {
+                        if let Some(i) = self.new_bon_list.state.selected() {
+                            self.new_bon_list.items.remove(i);
+                        }
+                        self.events.send(AppEvent::CalculateSummary);
                     }
                 }
                 KeyCode::Enter => {

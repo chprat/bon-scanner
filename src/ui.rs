@@ -126,7 +126,7 @@ impl App<'_> {
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state {
             AppState::Blacklist => "Add: Enter | Close: Esc",
-            AppState::ConvertBon => "Close: Esc | Quit: q",
+            AppState::ConvertBon => "Delete Entry: x | Close: Esc | Quit: q",
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
             AppState::OCR => {
