@@ -18,6 +18,7 @@ pub enum AppEvent {
     CalculateSummary,
     ConvertToBon,
     GoBlacklistState,
+    GoConvertBonState,
     GoHomeState,
     GoImportState,
     GoOcrState,

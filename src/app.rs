@@ -60,6 +60,7 @@ pub struct OcrList {
 
 pub enum AppState {
     Blacklist,
+    ConvertBon,
     Home,
     Import,
     OCR,
@@ -187,6 +188,7 @@ impl App<'_> {
         if !self.new_bon_list.items.is_empty() {
             self.new_bon_list.state.select_first();
         }
+        self.events.send(AppEvent::GoConvertBonState);
     }
 
     fn extract_date(line: &str) -> Option<String> {
@@ -272,6 +274,10 @@ impl App<'_> {
         }
     }
 
+    fn go_convert_bon_state(&mut self) {
+        self.current_state = AppState::ConvertBon;
+    }
+
     fn go_home_state(&mut self) {
         self.ocr_list.items.clear();
         self.ocr_list.state = ListState::default();
@@ -301,6 +307,13 @@ impl App<'_> {
 
     fn next_item(&mut self) {
         match self.current_state {
+            AppState::ConvertBon => {
+                if let Some(i) = self.new_bon_list.state.selected() {
+                    if i < self.new_bon_list.items.len() - 1 {
+                        self.new_bon_list.state.select_next();
+                    }
+                }
+            }
             AppState::Home => {
                 if let Some(i) = self.bon_list.state.selected() {
                     if i < self.bon_list.items.len() - 1 {
@@ -419,6 +432,13 @@ impl App<'_> {
 
     fn previous_item(&mut self) {
         match self.current_state {
+            AppState::ConvertBon => {
+                if let Some(i) = self.new_bon_list.state.selected() {
+                    if i > 0 {
+                        self.new_bon_list.state.select_previous();
+                    }
+                }
+            }
             AppState::Home => {
                 if let Some(i) = self.bon_list.state.selected() {
                     if i > 0 {
@@ -469,6 +489,7 @@ impl App<'_> {
                     AppEvent::CalculateSummary => self.calculate_summary(),
                     AppEvent::ConvertToBon => self.convert_to_bon(),
                     AppEvent::GoBlacklistState => self.go_blacklist_state(),
+                    AppEvent::GoConvertBonState => self.go_convert_bon_state(),
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::GoOcrState => self.go_ocr_state(),

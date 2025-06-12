@@ -28,6 +28,9 @@ impl Widget for &mut App<'_> {
                 self.render_ocr(main_area, buf);
                 self.render_edit(main_area, buf);
             }
+            AppState::ConvertBon => {
+                self.render_convert(main_area, buf);
+            }
             AppState::Home => {
                 self.render_home(main_area, buf);
             }
@@ -46,6 +49,64 @@ impl Widget for &mut App<'_> {
 }
 
 impl App<'_> {
+    fn render_convert(&mut self, area: Rect, buf: &mut Buffer) {
+        let [items_area, details_area] =
+            Layout::horizontal([Constraint::Fill(2), Constraint::Fill(1)]).areas(area);
+
+        let [details_area, summary_area] =
+            Layout::vertical([Constraint::Fill(2), Constraint::Fill(1)]).areas(details_area);
+
+        // items
+        let items_block = Block::bordered()
+            .title("Items")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let items: Vec<ListItem> = self.new_bon_list.items.iter().map(ListItem::from).collect();
+
+        let items_list = List::new(items)
+            .block(items_block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_spacing(HighlightSpacing::Always);
+
+        StatefulWidget::render(items_list, items_area, buf, &mut self.new_bon_list.state);
+
+        // details
+        let details_block = Block::bordered()
+            .title("Details")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let details_line = if let Some(i) = self.new_bon_list.state.selected() {
+            let entry = &self.new_bon_list.items[i];
+            format!(
+                "product: {}\nprice: {} €\ncategory: {}",
+                entry.product, entry.price, entry.category
+            )
+        } else {
+            "".to_string()
+        };
+
+        let details = Paragraph::new(details_line).block(details_block);
+
+        Widget::render(details, details_area, buf);
+
+        // summary
+        let summary_block = Block::bordered()
+            .title("Summary")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let summary_line = format!(
+            "price (OCR): {} €\nprice (calculated): {:.2} €\ndate: {}",
+            self.new_bon_list.price_ocr, self.new_bon_list.price_calc, self.new_bon_list.date
+        );
+
+        let summary = Paragraph::new(summary_line).block(summary_block);
+
+        Widget::render(summary, summary_area, buf);
+    }
+
     fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
         let popup_area = popup_area(area, 30, 50);
         let vertical = Layout::vertical([Constraint::Length(3)]).flex(Flex::Center);
@@ -65,10 +126,11 @@ impl App<'_> {
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state {
             AppState::Blacklist => "Add: Enter | Close: Esc",
+            AppState::ConvertBon => "Close: Esc | Quit: q",
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
             AppState::OCR => {
-                "Blacklist Entry: b  | Delete Entry: x | Mark Date: d | Mark Sum: s | Close: Esc | Quit: q"
+                "Blacklist Entry: b  | Delete Entry: x | Import Bon: Enter | Mark Date: d | Mark Sum: s | Close: Esc | Quit: q"
             }
         };
         Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
