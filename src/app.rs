@@ -128,27 +128,36 @@ impl Default for App<'_> {
 
 impl App<'_> {
     fn calculate_summary(&mut self) {
-        if let Some(i) = self.bon_list.state.selected() {
-            let bon = &self.bon_list.items[i];
-            self.bon_summary.clear();
-            let mut summary_map: HashMap<String, f64> = HashMap::new();
-            bon.entries.iter().for_each(|entry| {
-                summary_map
-                    .entry(entry.category.clone())
-                    .and_modify(|value| *value += entry.price)
-                    .or_insert(entry.price);
-            });
-            summary_map.iter().for_each(|(category, total)| {
-                self.bon_summary.push(SummaryEntry {
-                    category: category.clone(),
-                    total: *total,
+        if matches!(self.current_state, AppState::Home) {
+            if let Some(i) = self.bon_list.state.selected() {
+                let bon = &self.bon_list.items[i];
+                self.bon_summary.clear();
+                let mut summary_map: HashMap<String, f64> = HashMap::new();
+                bon.entries.iter().for_each(|entry| {
+                    summary_map
+                        .entry(entry.category.clone())
+                        .and_modify(|value| *value += entry.price)
+                        .or_insert(entry.price);
                 });
-            });
-            let total_sum: f64 = self.bon_summary.iter().map(|e| e.total).sum();
-            self.bon_summary.push(SummaryEntry {
-                category: "total".to_string(),
-                total: total_sum,
-            });
+                summary_map.iter().for_each(|(category, total)| {
+                    self.bon_summary.push(SummaryEntry {
+                        category: category.clone(),
+                        total: *total,
+                    });
+                });
+                let total_sum: f64 = self.bon_summary.iter().map(|e| e.total).sum();
+                self.bon_summary.push(SummaryEntry {
+                    category: "total".to_string(),
+                    total: total_sum,
+                });
+            }
+        } else if matches!(self.current_state, AppState::ConvertBon) {
+            self.new_bon_list.price_calc = self
+                .new_bon_list
+                .items
+                .iter()
+                .map(|entry| entry.price)
+                .sum();
         }
     }
 
@@ -189,6 +198,7 @@ impl App<'_> {
             self.new_bon_list.state.select_first();
         }
         self.events.send(AppEvent::GoConvertBonState);
+        self.events.send(AppEvent::CalculateSummary);
     }
 
     fn extract_date(line: &str) -> Option<String> {
