@@ -129,6 +129,17 @@ pub struct Bon {
     pub entries: Vec<Entry>,
 }
 
+impl Default for Bon {
+    fn default() -> Self {
+        Self {
+            bon_id: 0,
+            date: String::new(),
+            price: 0.0,
+            entries: Vec::new(),
+        }
+    }
+}
+
 impl Bon {
     pub fn new(date: &str, price: f64) -> Self {
         Self {
