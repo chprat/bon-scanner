@@ -22,16 +22,8 @@ impl Widget for &mut App<'_> {
         let [main_area, footer_area] =
             Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
 
-        let [list_area, details_area] =
-            Layout::horizontal([Constraint::Fill(2), Constraint::Fill(1)]).areas(main_area);
-
-        let [items_area, summary_area] =
-            Layout::vertical([Constraint::Fill(2), Constraint::Fill(1)]).areas(details_area);
-
-        self.render_details(items_area, buf);
+        self.render_home(main_area, buf);
         self.render_footer(footer_area, buf);
-        self.render_list(list_area, buf);
-        self.render_summary(summary_area, buf);
 
         if matches!(self.current_state, AppState::Blacklist) {
             self.render_ocr(area, buf);
@@ -49,27 +41,6 @@ impl Widget for &mut App<'_> {
 }
 
 impl App<'_> {
-    fn render_details(&self, area: Rect, buf: &mut Buffer) {
-        let block = Block::bordered()
-            .title("Details")
-            .title_alignment(Alignment::Center)
-            .border_type(BorderType::Rounded);
-
-        let items: Vec<ListItem> = if let Some(i) = self.bon_list.state.selected() {
-            self.bon_list.items[i]
-                .entries
-                .iter()
-                .map(ListItem::from)
-                .collect()
-        } else {
-            Vec::new()
-        };
-
-        let list = List::new(items).block(block);
-
-        Widget::render(list, area, buf);
-    }
-
     fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
         let popup_area = popup_area(area, 30, 50);
         let vertical = Layout::vertical([Constraint::Length(3)]).flex(Flex::Center);
@@ -98,6 +69,61 @@ impl App<'_> {
         Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
     }
 
+    fn render_home(&mut self, area: Rect, buf: &mut Buffer) {
+        let [bons_area, details_area] =
+            Layout::horizontal([Constraint::Fill(2), Constraint::Fill(1)]).areas(area);
+
+        let [details_area, summary_area] =
+            Layout::vertical([Constraint::Fill(2), Constraint::Fill(1)]).areas(details_area);
+
+        // bons
+        let bons_block = Block::bordered()
+            .title("Bons")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let bons: Vec<ListItem> = self.bon_list.items.iter().map(ListItem::from).collect();
+
+        let bons_list = List::new(bons)
+            .block(bons_block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_spacing(HighlightSpacing::Always);
+
+        StatefulWidget::render(bons_list, bons_area, buf, &mut self.bon_list.state);
+
+        // details
+        let details_block = Block::bordered()
+            .title("Details")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let details: Vec<ListItem> = if let Some(i) = self.bon_list.state.selected() {
+            self.bon_list.items[i]
+                .entries
+                .iter()
+                .map(ListItem::from)
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        let details_list = List::new(details).block(details_block);
+
+        Widget::render(details_list, details_area, buf);
+
+        // summary
+        let summary_block = Block::bordered()
+            .title("Summary")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let summary: Vec<ListItem> = self.bon_summary.iter().map(ListItem::from).collect();
+
+        let summary_list = List::new(summary).block(summary_block);
+
+        Widget::render(summary_list, summary_area, buf);
+    }
+
     fn render_import(&mut self, area: Rect, buf: &mut Buffer) {
         let import_area = popup_area(area, 50, 50);
 
@@ -122,22 +148,6 @@ impl App<'_> {
         StatefulWidget::render(list, import_area, buf, &mut self.import_list.state);
     }
 
-    fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
-        let block = Block::bordered()
-            .title("Bons")
-            .title_alignment(Alignment::Center)
-            .border_type(BorderType::Rounded);
-
-        let items: Vec<ListItem> = self.bon_list.items.iter().map(ListItem::from).collect();
-
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(SELECTED_STYLE)
-            .highlight_spacing(HighlightSpacing::Always);
-
-        StatefulWidget::render(list, area, buf, &mut self.bon_list.state);
-    }
-
     fn render_ocr(&mut self, area: Rect, buf: &mut Buffer) {
         let ocr_area = popup_area(area, 80, 80);
 
@@ -155,19 +165,6 @@ impl App<'_> {
 
         Widget::render(Clear, ocr_area, buf);
         StatefulWidget::render(list, ocr_area, buf, &mut self.ocr_list.state);
-    }
-
-    fn render_summary(&mut self, area: Rect, buf: &mut Buffer) {
-        let block = Block::bordered()
-            .title("Summary")
-            .title_alignment(Alignment::Center)
-            .border_type(BorderType::Rounded);
-
-        let items: Vec<ListItem> = self.bon_summary.iter().map(ListItem::from).collect();
-
-        let list = List::new(items).block(block);
-
-        Widget::render(list, area, buf);
     }
 }
 
