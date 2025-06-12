@@ -38,8 +38,14 @@ pub struct FileList {
     pub state: ListState,
 }
 
+#[derive(Clone)]
+pub struct OcrEntry {
+    pub name: String,
+    pub ocr_type: OcrType,
+}
+
 pub struct OcrList {
-    pub items: Vec<String>,
+    pub items: Vec<OcrEntry>,
     pub state: ListState,
 }
 
@@ -48,6 +54,13 @@ pub enum AppState {
     Home,
     Import,
     OCR,
+}
+
+#[derive(Clone)]
+pub enum OcrType {
+    Date,
+    Entry,
+    Sum,
 }
 
 pub struct SummaryEntry {
@@ -141,15 +154,18 @@ impl App<'_> {
                         self.edit_field.move_cursor(CursorMove::End);
                         self.edit_field.delete_line_by_head();
                         if let Some(i) = self.ocr_list.state.selected() {
-                            self.edit_field.insert_str(self.ocr_list.items[i].as_str());
+                            self.edit_field
+                                .insert_str(self.ocr_list.items[i].name.as_str());
                         }
                         self.events.send(AppEvent::GoBlacklistState);
                     }
                 }
+                KeyCode::Char('d') => self.events.send(AppEvent::OcrMarkDate),
                 KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
                 KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
                 KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
                 KeyCode::Char('q') => self.events.send(AppEvent::Quit),
+                KeyCode::Char('s') => self.events.send(AppEvent::OcrMarkSum),
                 KeyCode::Char('x') => {
                     if matches!(self.current_state, AppState::OCR) {
                         if let Some(i) = self.ocr_list.state.selected() {
@@ -199,7 +215,10 @@ impl App<'_> {
     fn go_ocr_state(&mut self) {
         self.current_state = AppState::OCR;
         if self.ocr_list.items.is_empty() {
-            self.ocr_list.items = vec!["Processing..".to_string()];
+            self.ocr_list.items = vec![OcrEntry {
+                name: "Processing..".to_string(),
+                ocr_type: OcrType::Entry,
+            }];
             self.events.send(AppEvent::PerformOCR);
         }
     }
@@ -233,6 +252,42 @@ impl App<'_> {
                 }
             }
             _ => {}
+        }
+    }
+
+    pub fn ocr_mark_date(&mut self) {
+        let dates = self
+            .ocr_list
+            .items
+            .iter()
+            .filter(|elem| matches!(elem.ocr_type, OcrType::Date))
+            .count();
+        if let Some(i) = self.ocr_list.state.selected() {
+            if let Some(entry) = self.ocr_list.items.get_mut(i) {
+                if dates == 0 && matches!(entry.ocr_type, OcrType::Entry) {
+                    entry.ocr_type = OcrType::Date;
+                } else if matches!(entry.ocr_type, OcrType::Date) {
+                    entry.ocr_type = OcrType::Entry;
+                }
+            }
+        }
+    }
+
+    pub fn ocr_mark_sum(&mut self) {
+        let sums = self
+            .ocr_list
+            .items
+            .iter()
+            .filter(|elem| matches!(elem.ocr_type, OcrType::Sum))
+            .count();
+        if let Some(i) = self.ocr_list.state.selected() {
+            if let Some(entry) = self.ocr_list.items.get_mut(i) {
+                if sums == 0 && matches!(entry.ocr_type, OcrType::Entry) {
+                    entry.ocr_type = OcrType::Sum;
+                } else if matches!(entry.ocr_type, OcrType::Sum) {
+                    entry.ocr_type = OcrType::Entry;
+                }
+            }
         }
     }
 
@@ -279,7 +334,11 @@ impl App<'_> {
                 re.is_match(line)
             })
             .filter(|line| !self.ocr_blacklist.iter().any(|elem| line.contains(elem)))
-            .collect::<Vec<String>>();
+            .map(|line| OcrEntry {
+                name: line,
+                ocr_type: OcrType::Entry,
+            })
+            .collect::<Vec<OcrEntry>>();
 
         if !self.ocr_list.items.is_empty() {
             self.ocr_list.state.select_first();
@@ -343,6 +402,8 @@ impl App<'_> {
                     AppEvent::NextItem => self.next_item(),
                     AppEvent::PerformOCR => self.perform_ocr(),
                     AppEvent::PreviousItem => self.previous_item(),
+                    AppEvent::OcrMarkDate => self.ocr_mark_date(),
+                    AppEvent::OcrMarkSum => self.ocr_mark_sum(),
                     AppEvent::UpdateFromDatabase => self.update_from_database(),
                     AppEvent::Quit => self.quit(),
                 },
@@ -357,8 +418,13 @@ impl App<'_> {
             let ocr_list = self.ocr_list.items.clone();
             self.ocr_list.items = ocr_list
                 .into_iter()
-                .filter(|line| !self.ocr_blacklist.iter().any(|elem| line.contains(elem)))
-                .collect::<Vec<String>>();
+                .filter(|line| {
+                    !self
+                        .ocr_blacklist
+                        .iter()
+                        .any(|elem| line.name.contains(elem))
+                })
+                .collect::<Vec<OcrEntry>>();
         }
     }
 

@@ -10,7 +10,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{App, AppState, SummaryEntry},
+    app::{App, AppState, OcrEntry, OcrType, SummaryEntry},
     database,
 };
 
@@ -91,7 +91,9 @@ impl App<'_> {
             AppState::Blacklist => "Add: Enter | Close: Esc",
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
-            AppState::OCR => "Blacklist Entry: b  | Delete Entry: x | Close: Esc | Quit: q",
+            AppState::OCR => {
+                "Blacklist Entry: b  | Delete Entry: x | Mark Date: d | Mark Sum: s | Close: Esc | Quit: q"
+            }
         };
         Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
     }
@@ -144,12 +146,7 @@ impl App<'_> {
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
-        let items: Vec<ListItem> = self
-            .ocr_list
-            .items
-            .iter()
-            .map(|elem| ListItem::from(elem.as_str()))
-            .collect();
+        let items: Vec<ListItem> = self.ocr_list.items.iter().map(ListItem::from).collect();
 
         let list = List::new(items)
             .block(block)
@@ -195,6 +192,18 @@ impl From<&database::Entry> for ListItem<'_> {
             "{} {} {} €",
             value.category, value.product, value.price
         ));
+        ListItem::new(line)
+    }
+}
+
+impl From<&OcrEntry> for ListItem<'_> {
+    fn from(value: &OcrEntry) -> Self {
+        let prefix = match value.ocr_type {
+            OcrType::Date => "D: ",
+            OcrType::Entry => "",
+            OcrType::Sum => "S: ",
+        };
+        let line = Line::from(format!("{}{}", prefix, value.name));
         ListItem::new(line)
     }
 }

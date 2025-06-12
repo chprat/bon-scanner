@@ -21,6 +21,8 @@ pub enum AppEvent {
     GoImportState,
     GoOcrState,
     NextItem,
+    OcrMarkDate,
+    OcrMarkSum,
     PerformOCR,
     PreviousItem,
     UpdateFromDatabase,
