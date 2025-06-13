@@ -10,6 +10,13 @@ impl Database {
             .expect("Couldn't insert blacklist");
     }
 
+    pub fn add_processed_entry(&self, processed_entry: &str) {
+        let query = format!("INSERT INTO processed (processedEntry) VALUES ('{processed_entry}')");
+        self.connection
+            .execute(query)
+            .expect("Couldn't insert processed");
+    }
+
     pub fn create_bon(&self, date: &str, price: f64) {
         let query = format!("INSERT INTO bons (date, price) VALUES ('{date}', '{price}')");
         self.connection.execute(query).expect("Couldn't insert bon");
@@ -28,6 +35,7 @@ impl Database {
             CREATE TABLE blacklist (blacklistId INTEGER PRIMARY KEY AUTOINCREMENT, blacklistEntry TEXT NOT NULL);
             CREATE TABLE categories (categoryId INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL);
             CREATE TABLE entries (entryId INTEGER PRIMARY KEY AUTOINCREMENT, bonId INTEGER NOT NULL, productId INTEGER NOT NULL, price REAL NOT NULL);
+            CREATE TABLE processed (processedId INTEGER PRIMARY KEY AUTOINCREMENT, processedEntry TEXT NOT NULL);
             CREATE TABLE products (productId INTEGER PRIMARY KEY AUTOINCREMENT, categoryId INTEGER NOT NULL, product TEXT NOT NULL);
         ";
         self.connection
@@ -171,6 +179,22 @@ impl Database {
         }
     }
 
+    pub fn get_processed(&self) -> Vec<String> {
+        let mut processed: Vec<String> = Vec::new();
+        let query = "SELECT processedEntry FROM processed";
+        for row in self
+            .connection
+            .prepare(query)
+            .expect("Couldn't prepare statement")
+            .into_iter()
+            .map(|row| row.expect("Couldn't fetch row"))
+        {
+            let processed_entry = row.read::<&str, _>("processedEntry");
+            processed.push(processed_entry.to_string());
+        }
+        processed
+    }
+
     pub fn get_products(&self) -> Vec<Product> {
         let mut products: Vec<Product> = Vec::new();
         let query = "SELECT productId, categoryId, product FROM products";
@@ -294,11 +318,12 @@ mod tests {
                 true
             })
             .expect("Couldn't execute query");
-        assert_eq!(6, tables.len());
+        assert_eq!(7, tables.len());
         assert!(tables.contains(&"blacklist".to_string()));
         assert!(tables.contains(&"bons".to_string()));
         assert!(tables.contains(&"categories".to_string()));
         assert!(tables.contains(&"entries".to_string()));
+        assert!(tables.contains(&"processed".to_string()));
         assert!(tables.contains(&"products".to_string()));
         assert!(tables.contains(&"sqlite_sequence".to_string()));
     }
@@ -434,6 +459,22 @@ mod tests {
         assert!(bon.entries.contains(&eggs2));
         assert!(bon.entries.contains(&spoon));
         assert!(bon.entries.contains(&fork));
+    }
+
+    #[test]
+    fn processed() {
+        let database = Database::new(":memory:");
+        database.create_database();
+
+        database.add_processed_entry("first");
+        database.add_processed_entry("second");
+        database.add_processed_entry("third");
+
+        let processed = database.get_processed();
+        assert_eq!(3, processed.len());
+        assert!(processed.contains(&"first".to_string()));
+        assert!(processed.contains(&"second".to_string()));
+        assert!(processed.contains(&"third".to_string()));
     }
 
     #[test]
