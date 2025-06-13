@@ -31,7 +31,7 @@ impl Database {
 
     pub fn create_database(&self) {
         let query = "
-            CREATE TABLE bons (bonId INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, price REAL NOT NULL);
+            CREATE TABLE bons (bonId INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, price REAL NOT NULL, hidden INTEGER DEFAULT 0, hide_date DEFAULT NULL);
             CREATE TABLE blacklist (blacklistId INTEGER PRIMARY KEY AUTOINCREMENT, blacklistEntry TEXT NOT NULL);
             CREATE TABLE categories (categoryId INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL);
             CREATE TABLE entries (entryId INTEGER PRIMARY KEY AUTOINCREMENT, bonId INTEGER NOT NULL, productId INTEGER NOT NULL, price REAL NOT NULL);
@@ -215,6 +215,13 @@ impl Database {
         products
     }
 
+    pub fn hide_bon(&self, bon_id: i64) {
+        let query = format!(
+            "UPDATE bons SET hidden = 1, hide_date = datetime('now') WHERE bonId = {bon_id}"
+        );
+        self.connection.execute(query).expect("Couldn't hide bon");
+    }
+
     pub fn new(database_file: &str) -> Self {
         Self {
             connection: sqlite::open(database_file).expect("Couldn't open database"),
@@ -224,7 +231,7 @@ impl Database {
 
 #[derive(Debug)]
 pub struct Bon {
-    bon_id: i64,
+    pub bon_id: i64,
     pub date: String,
     pub price: f64,
     pub entries: Vec<Entry>,
@@ -347,7 +354,7 @@ mod tests {
 
     #[test]
     fn bons() {
-        let query = "SELECT date, price FROM bons";
+        let query = "SELECT date, price, hidden FROM bons";
         let database = Database::new(":memory:");
         database.create_database();
 
@@ -370,8 +377,31 @@ mod tests {
             let price = statement
                 .read::<f64, _>("price")
                 .expect("Couldn't read price");
+            let hidden = statement
+                .read::<i64, _>("hidden")
+                .expect("Couldn't read hidden");
             assert_eq!("2024-12-24 12:12:12 +0100", date);
             assert_eq!(25.47, price);
+            assert_eq!(0, hidden);
+        }
+
+        database.hide_bon(1);
+        let query = "SELECT hidden, hide_date FROM bons";
+
+        let mut statement = database
+            .connection
+            .prepare(query)
+            .expect("Couldn't prepare statement");
+
+        while let Ok(State::Row) = statement.next() {
+            let hidden = statement
+                .read::<i64, _>("hidden")
+                .expect("Couldn't read hidden");
+            let hide_date = statement
+                .read::<String, _>("hide_date")
+                .expect("Couldn't read hide_date");
+            assert_eq!(1, hidden);
+            assert!(!hide_date.is_empty());
         }
     }
 
