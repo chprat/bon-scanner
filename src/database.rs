@@ -132,6 +132,19 @@ impl Database {
         categories
     }
 
+    pub fn get_last_bon_id(&self) -> i64 {
+        let query = "SELECT MAX(bonId) FROM bons";
+        let mut statement = self
+            .connection
+            .prepare(query)
+            .expect("Couldn't prepare statement");
+        if let Ok(sqlite::State::Row) = statement.next() {
+            statement.read::<i64, _>(0).unwrap_or(0)
+        } else {
+            0
+        }
+    }
+
     pub fn new(database_file: &str) -> Self {
         Self {
             connection: sqlite::open(database_file).expect("Couldn't open database"),
@@ -246,11 +259,18 @@ mod tests {
     }
 
     #[test]
-    fn create_bon() {
+    fn bons() {
         let query = "SELECT date, price FROM bons";
         let database = Database::new(":memory:");
         database.create_database();
+
+        let bon_id = database.get_last_bon_id();
+        assert_eq!(0, bon_id);
+
         database.create_bon("2024-12-24 12:12:12 +0100", 25.47);
+        let bon_id = database.get_last_bon_id();
+        assert_eq!(1, bon_id);
+
         let mut statement = database
             .connection
             .prepare(query)
