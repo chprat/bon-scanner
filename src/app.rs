@@ -93,11 +93,8 @@ impl Default for App<'_> {
         }
         let bons = database.get_bons();
         let blacklist = database.get_blacklist();
-        let import_list = fs::read_dir(settings.import_path())
-            .expect("Couldn't read bons directory")
-            .filter_map(Result::ok)
-            .map(|entry| entry.file_name().to_string_lossy().into_owned())
-            .collect::<Vec<String>>();
+        let processed = database.get_processed();
+        let import_list = read_ocr_files(&processed);
         Self {
             bon_list: BonList {
                 items: bons,
@@ -734,4 +731,14 @@ impl App<'_> {
     pub fn quit(&mut self) {
         self.running = false;
     }
+}
+
+fn read_ocr_files(processed: &[String]) -> Vec<String> {
+    let settings = settings::Settings::new();
+    fs::read_dir(settings.import_path())
+        .expect("Couldn't read bons directory")
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .filter(|entry| !processed.iter().any(|elem| entry.contains(elem)))
+        .collect::<Vec<String>>()
 }
