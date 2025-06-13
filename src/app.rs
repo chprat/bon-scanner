@@ -64,6 +64,7 @@ pub enum AppState {
     EditBonPrice,
     EditCategory,
     EditName,
+    EditPrice,
     Home,
     Import,
     OCR,
@@ -154,7 +155,9 @@ impl App<'_> {
                     total: total_sum,
                 });
             }
-        } else if matches!(self.current_state, AppState::ConvertBon) {
+        } else if matches!(self.current_state, AppState::ConvertBon)
+            | matches!(self.current_state, AppState::EditPrice)
+        {
             self.new_bon_list.price_calc = self
                 .new_bon_list
                 .items
@@ -235,6 +238,7 @@ impl App<'_> {
         } else if matches!(self.current_state, AppState::EditBonPrice)
             | matches!(self.current_state, AppState::EditCategory)
             | matches!(self.current_state, AppState::EditName)
+            | matches!(self.current_state, AppState::EditPrice)
         {
             match key_event.code {
                 KeyCode::Enter => {
@@ -261,6 +265,22 @@ impl App<'_> {
                             if let Some(i) = self.new_bon_list.state.selected() {
                                 if let Some(entry) = self.new_bon_list.items.get_mut(i) {
                                     entry.product = self.edit_field.lines()[0].clone();
+                                }
+                            }
+                        }
+                        AppState::EditPrice => {
+                            if let Some(i) = self.new_bon_list.state.selected() {
+                                if let Some(entry) = self.new_bon_list.items.get_mut(i) {
+                                    entry.price = self
+                                        .edit_field
+                                        .lines()
+                                        .first()
+                                        .and_then(|line| {
+                                            let repl = line.replace(",", ".");
+                                            repl.parse::<f64>().ok()
+                                        })
+                                        .unwrap_or(0.0);
+                                    self.events.send(AppEvent::CalculateSummary);
                                 }
                             }
                         }
@@ -312,6 +332,15 @@ impl App<'_> {
                     self.edit_field
                         .insert_str(self.new_bon_list.price_ocr.to_string());
                     self.events.send(AppEvent::GoEditBonPriceState);
+                }
+                KeyCode::Char('p') => {
+                    self.edit_field.move_cursor(CursorMove::End);
+                    self.edit_field.delete_line_by_head();
+                    if let Some(i) = self.new_bon_list.state.selected() {
+                        self.edit_field
+                            .insert_str(self.new_bon_list.items[i].price.to_string());
+                    }
+                    self.events.send(AppEvent::GoEditPriceState);
                 }
                 KeyCode::Char('q') => self.events.send(AppEvent::Quit),
                 KeyCode::Char('s') => self.events.send(AppEvent::OcrMarkSum),
@@ -375,6 +404,12 @@ impl App<'_> {
     fn go_edit_name_state(&mut self) {
         if matches!(self.current_state, AppState::ConvertBon) {
             self.current_state = AppState::EditName;
+        }
+    }
+
+    fn go_edit_price_state(&mut self) {
+        if matches!(self.current_state, AppState::ConvertBon) {
+            self.current_state = AppState::EditPrice;
         }
     }
 
@@ -593,6 +628,7 @@ impl App<'_> {
                     AppEvent::GoEditBonPriceState => self.go_edit_bon_price_state(),
                     AppEvent::GoEditCategoryState => self.go_edit_category_state(),
                     AppEvent::GoEditNameState => self.go_edit_name_state(),
+                    AppEvent::GoEditPriceState => self.go_edit_price_state(),
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::GoOcrState => self.go_ocr_state(),
