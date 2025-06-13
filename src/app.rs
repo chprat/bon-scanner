@@ -490,6 +490,14 @@ impl App<'_> {
                 );
             self.database.create_entry(bon_id, product_id, entry.price);
         });
+        let ocr_file = self.ocr_file.clone();
+        self.ocr_file = String::new();
+        let file_name = Path::new(&ocr_file)
+            .file_name()
+            .expect("Could not get file name")
+            .to_str()
+            .expect("Could not convert file name to string");
+        self.database.add_processed_entry(file_name);
         self.events.send(AppEvent::GoHomeState);
         self.events.send(AppEvent::UpdateFromDatabase);
         self.events.send(AppEvent::CalculateSummary);
@@ -722,6 +730,10 @@ impl App<'_> {
             self.bon_list.items = self.database.get_bons();
             if !self.bon_list.items.is_empty() {
                 self.bon_list.state.select_first();
+            }
+            self.import_list.items = read_ocr_files(&self.database.get_processed());
+            if !self.import_list.items.is_empty() {
+                self.import_list.state.select_first();
             }
         }
     }
