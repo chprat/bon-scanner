@@ -740,5 +740,6 @@ fn read_ocr_files(processed: &[String]) -> Vec<String> {
         .filter_map(Result::ok)
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
         .filter(|entry| !processed.iter().any(|elem| entry.contains(elem)))
+        .filter(|entry| entry.contains("jpg") || entry.contains("png") || entry.contains("jpeg"))
         .collect::<Vec<String>>()
 }
