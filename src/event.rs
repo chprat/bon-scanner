@@ -19,6 +19,7 @@ pub enum AppEvent {
     ConvertToBon,
     GoBlacklistState,
     GoConvertBonState,
+    GoEditBonPriceState,
     GoHomeState,
     GoImportState,
     GoOcrState,

@@ -61,6 +61,7 @@ pub struct OcrList {
 pub enum AppState {
     Blacklist,
     ConvertBon,
+    EditBonPrice,
     Home,
     Import,
     OCR,
@@ -229,6 +230,28 @@ impl App<'_> {
                 KeyCode::Esc => self.events.send(AppEvent::GoOcrState),
                 _ => _ = self.edit_field.input(key_event),
             }
+        } else if matches!(self.current_state, AppState::EditBonPrice) {
+            match key_event.code {
+                KeyCode::Enter => {
+                    match self.current_state {
+                        AppState::EditBonPrice => {
+                            self.new_bon_list.price_ocr = self
+                                .edit_field
+                                .lines()
+                                .first()
+                                .and_then(|line| {
+                                    let repl = line.replace(",", ".");
+                                    repl.parse::<f64>().ok()
+                                })
+                                .unwrap_or(0.0);
+                        }
+                        _ => {}
+                    }
+                    self.events.send(AppEvent::GoConvertBonState);
+                }
+                KeyCode::Esc => self.events.send(AppEvent::GoConvertBonState),
+                _ => _ = self.edit_field.input(key_event),
+            }
         } else {
             match key_event.code {
                 KeyCode::Char('b') => {
@@ -246,6 +269,13 @@ impl App<'_> {
                 KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
                 KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
                 KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
+                KeyCode::Char('o') => {
+                    self.edit_field.move_cursor(CursorMove::End);
+                    self.edit_field.delete_line_by_head();
+                    self.edit_field
+                        .insert_str(self.new_bon_list.price_ocr.to_string());
+                    self.events.send(AppEvent::GoEditBonPriceState);
+                }
                 KeyCode::Char('q') => self.events.send(AppEvent::Quit),
                 KeyCode::Char('s') => self.events.send(AppEvent::OcrMarkSum),
                 KeyCode::Char('x') => {
@@ -291,6 +321,12 @@ impl App<'_> {
 
     fn go_convert_bon_state(&mut self) {
         self.current_state = AppState::ConvertBon;
+    }
+
+    fn go_edit_bon_price_state(&mut self) {
+        if matches!(self.current_state, AppState::ConvertBon) {
+            self.current_state = AppState::EditBonPrice;
+        }
     }
 
     fn go_home_state(&mut self) {
@@ -505,6 +541,7 @@ impl App<'_> {
                     AppEvent::ConvertToBon => self.convert_to_bon(),
                     AppEvent::GoBlacklistState => self.go_blacklist_state(),
                     AppEvent::GoConvertBonState => self.go_convert_bon_state(),
+                    AppEvent::GoEditBonPriceState => self.go_edit_bon_price_state(),
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::GoOcrState => self.go_ocr_state(),
