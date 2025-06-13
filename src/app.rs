@@ -392,6 +392,8 @@ impl App<'_> {
                         self.events.send(AppEvent::GoOcrState);
                     } else if matches!(self.current_state, AppState::OCR) {
                         self.events.send(AppEvent::ConvertToBon);
+                    } else if matches!(self.current_state, AppState::ConvertBon) {
+                        self.events.send(AppEvent::ImportBon);
                     }
                 }
                 KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
@@ -456,6 +458,44 @@ impl App<'_> {
             }];
             self.events.send(AppEvent::PerformOCR);
         }
+    }
+
+    fn import_bon(&mut self) {
+        let mut split = self.new_bon_list.date.split(".").collect::<Vec<&str>>();
+        split.reverse();
+        let date = split.join("-");
+        self.database
+            .create_bon(date.as_str(), self.new_bon_list.price_ocr);
+        let bon_id = self.database.get_last_bon_id();
+        self.new_bon_list.items.iter().for_each(|entry| {
+            let categories = self.database.get_categories();
+            let category_id = categories
+                .iter()
+                .find(|cat| cat.category == entry.category)
+                .map_or_else(
+                    || {
+                        self.database.create_category(entry.category.as_str());
+                        self.database.get_last_category_id()
+                    },
+                    |cat| cat.category_id,
+                );
+            let products = self.database.get_products();
+            let product_id = products
+                .iter()
+                .find(|prod| prod.product == entry.product)
+                .map_or_else(
+                    || {
+                        self.database
+                            .create_product(category_id, entry.product.as_str());
+                        self.database.get_last_product_id()
+                    },
+                    |cat| cat.category_id,
+                );
+            self.database.create_entry(bon_id, product_id, entry.price);
+        });
+        self.events.send(AppEvent::GoHomeState);
+        self.events.send(AppEvent::UpdateFromDatabase);
+        self.events.send(AppEvent::CalculateSummary);
     }
 
     pub fn new() -> Self {
@@ -654,6 +694,7 @@ impl App<'_> {
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::GoOcrState => self.go_ocr_state(),
+                    AppEvent::ImportBon => self.import_bon(),
                     AppEvent::NextItem => self.next_item(),
                     AppEvent::PerformOCR => self.perform_ocr(),
                     AppEvent::PreviousItem => self.previous_item(),
@@ -680,6 +721,11 @@ impl App<'_> {
                         .any(|elem| line.name.contains(elem))
                 })
                 .collect::<Vec<OcrEntry>>();
+        } else if matches!(self.current_state, AppState::Home) {
+            self.bon_list.items = self.database.get_bons();
+            if !self.bon_list.items.is_empty() {
+                self.bon_list.state.select_first();
+            }
         }
     }
 
