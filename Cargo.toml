@@ -14,6 +14,7 @@ ratatui = "0.29.0"
 regex = "1.11.1"
 rusty-tesseract = "1.1.10"
 sqlite = "0.37.0"
+textdistance = "1.1.1"
 tokio = { version = "1.45.1", features = ["full"] }
 tui-textarea = "0.7.0"
 

@@ -11,6 +11,7 @@ use rusty_tesseract::{Args, Image};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use textdistance::str::damerau_levenshtein;
 use tui_textarea::{CursorMove, TextArea};
 
 pub struct App<'a> {
@@ -185,9 +186,30 @@ impl App<'_> {
                 OcrType::Entry => {
                     if let Some(name) = Self::extract_name(&elem.name) {
                         if let Some(price) = Self::extract_price(&elem.name) {
+                            let db_products = self.database.get_products();
+                            let db_product = db_products
+                                .iter()
+                                .min_by_key(|elem| damerau_levenshtein(&name, &elem.product));
+                            let distance = if let Some(product) = &db_product {
+                                damerau_levenshtein(&name, &product.product)
+                            } else {
+                                usize::MAX
+                            };
+                            let mut category = String::new();
+                            let mut product = name;
+                            if distance < 4 {
+                                let db_product = db_product.unwrap();
+                                product = db_product.product.clone();
+                                let db_categories = self.database.get_categories();
+                                category = db_categories
+                                    .iter()
+                                    .find(|category| category.category_id == db_product.category_id)
+                                    .map(|category| category.category.clone())
+                                    .unwrap_or_else(|| "".to_string());
+                            }
                             self.new_bon_list.items.push(database::Entry {
-                                category: String::new(),
-                                product: name,
+                                category,
+                                product,
                                 price,
                             });
                         }
