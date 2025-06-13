@@ -333,6 +333,7 @@ impl App<'_> {
                     self.events.send(AppEvent::GoEditCategoryState);
                 }
                 KeyCode::Char('d') => self.events.send(AppEvent::OcrMarkDate),
+                KeyCode::Char('h') => self.events.send(AppEvent::HideItem),
                 KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
                 KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
                 KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
@@ -454,6 +455,17 @@ impl App<'_> {
                 ocr_type: OcrType::Entry,
             }];
             self.events.send(AppEvent::PerformOCR);
+        }
+    }
+
+    fn hide_item(&mut self) {
+        if matches!(self.current_state, AppState::Home) {
+            if let Some(i) = self.bon_list.state.selected() {
+                if let Some(entry) = self.bon_list.items.get(i) {
+                    self.database.hide_bon(entry.bon_id);
+                    self.events.send(AppEvent::UpdateFromDatabase);
+                }
+            }
         }
     }
 
@@ -699,6 +711,7 @@ impl App<'_> {
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::GoOcrState => self.go_ocr_state(),
+                    AppEvent::HideItem => self.hide_item(),
                     AppEvent::ImportBon => self.import_bon(),
                     AppEvent::NextItem => self.next_item(),
                     AppEvent::PerformOCR => self.perform_ocr(),

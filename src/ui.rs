@@ -144,7 +144,7 @@ impl App<'_> {
             AppState::ConvertBon => {
                 "Edit Category: c | Edit Name: n | Edit Price: p | Delete Entry: x | Edit Bon Price: o | Close: Esc | Quit: q"
             }
-            AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
+            AppState::Home => "Next: j | Previous: k | Import: i | Hide: h | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
             AppState::OCR => {
                 "Blacklist Entry: b  | Delete Entry: x | Import Bon: Enter | Mark Date: d | Mark Sum: s | Close: Esc | Quit: q"

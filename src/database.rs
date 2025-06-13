@@ -79,7 +79,7 @@ impl Database {
 
     pub fn get_bons(&self) -> Vec<Bon> {
         let mut empty_bons: Vec<Bon> = Vec::new();
-        let query = "SELECT * FROM bons";
+        let query = "SELECT * FROM bons WHERE hidden = 0";
         for row in self
             .connection
             .prepare(query)

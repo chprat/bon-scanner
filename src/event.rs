@@ -26,6 +26,7 @@ pub enum AppEvent {
     GoHomeState,
     GoImportState,
     GoOcrState,
+    HideItem,
     ImportBon,
     NextItem,
     OcrMarkDate,
