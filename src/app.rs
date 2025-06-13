@@ -63,6 +63,7 @@ pub enum AppState {
     ConvertBon,
     EditBonPrice,
     EditCategory,
+    EditName,
     Home,
     Import,
     OCR,
@@ -233,6 +234,7 @@ impl App<'_> {
             }
         } else if matches!(self.current_state, AppState::EditBonPrice)
             | matches!(self.current_state, AppState::EditCategory)
+            | matches!(self.current_state, AppState::EditName)
         {
             match key_event.code {
                 KeyCode::Enter => {
@@ -252,6 +254,13 @@ impl App<'_> {
                             if let Some(i) = self.new_bon_list.state.selected() {
                                 if let Some(entry) = self.new_bon_list.items.get_mut(i) {
                                     entry.category = self.edit_field.lines()[0].clone();
+                                }
+                            }
+                        }
+                        AppState::EditName => {
+                            if let Some(i) = self.new_bon_list.state.selected() {
+                                if let Some(entry) = self.new_bon_list.items.get_mut(i) {
+                                    entry.product = self.edit_field.lines()[0].clone();
                                 }
                             }
                         }
@@ -288,6 +297,15 @@ impl App<'_> {
                 KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
                 KeyCode::Char('j') => self.events.send(AppEvent::NextItem),
                 KeyCode::Char('k') => self.events.send(AppEvent::PreviousItem),
+                KeyCode::Char('n') => {
+                    self.edit_field.move_cursor(CursorMove::End);
+                    self.edit_field.delete_line_by_head();
+                    if let Some(i) = self.new_bon_list.state.selected() {
+                        self.edit_field
+                            .insert_str(self.new_bon_list.items[i].product.as_str());
+                    }
+                    self.events.send(AppEvent::GoEditNameState);
+                }
                 KeyCode::Char('o') => {
                     self.edit_field.move_cursor(CursorMove::End);
                     self.edit_field.delete_line_by_head();
@@ -351,6 +369,12 @@ impl App<'_> {
     fn go_edit_category_state(&mut self) {
         if matches!(self.current_state, AppState::ConvertBon) {
             self.current_state = AppState::EditCategory;
+        }
+    }
+
+    fn go_edit_name_state(&mut self) {
+        if matches!(self.current_state, AppState::ConvertBon) {
+            self.current_state = AppState::EditName;
         }
     }
 
@@ -568,6 +592,7 @@ impl App<'_> {
                     AppEvent::GoConvertBonState => self.go_convert_bon_state(),
                     AppEvent::GoEditBonPriceState => self.go_edit_bon_price_state(),
                     AppEvent::GoEditCategoryState => self.go_edit_category_state(),
+                    AppEvent::GoEditNameState => self.go_edit_name_state(),
                     AppEvent::GoHomeState => self.go_home_state(),
                     AppEvent::GoImportState => self.go_import_state(),
                     AppEvent::GoOcrState => self.go_ocr_state(),
