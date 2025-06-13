@@ -26,7 +26,7 @@ impl Widget for &mut App<'_> {
             AppState::Blacklist => {
                 self.render_home(main_area, buf);
                 self.render_ocr(main_area, buf);
-                self.render_edit(main_area, buf);
+                self.render_edit(main_area, buf, "Add to blacklist".to_string());
             }
             AppState::ConvertBon => {
                 self.render_convert(main_area, buf);
@@ -107,13 +107,13 @@ impl App<'_> {
         Widget::render(summary, summary_area, buf);
     }
 
-    fn render_edit(&mut self, area: Rect, buf: &mut Buffer) {
+    fn render_edit(&mut self, area: Rect, buf: &mut Buffer, msg: String) {
         let popup_area = popup_area(area, 30, 50);
         let vertical = Layout::vertical([Constraint::Length(3)]).flex(Flex::Center);
         let [edit_area] = vertical.areas(popup_area);
 
         let block = Block::bordered()
-            .title("Add to blacklist")
+            .title(msg)
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
@@ -125,13 +125,14 @@ impl App<'_> {
 
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state {
-            AppState::Blacklist => "Add: Enter | Close: Esc",
             AppState::ConvertBon => "Delete Entry: x | Close: Esc | Quit: q",
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
             AppState::OCR => {
                 "Blacklist Entry: b  | Delete Entry: x | Import Bon: Enter | Mark Date: d | Mark Sum: s | Close: Esc | Quit: q"
             }
+            // use the default for the editing windows
+            _ => "Add: Enter | Close: Esc",
         };
         Paragraph::new(text).style(FOOTER_STYLE).render(area, buf);
     }
