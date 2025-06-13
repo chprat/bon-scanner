@@ -114,6 +114,24 @@ impl Database {
         bons
     }
 
+    pub fn get_categories(&self) -> Vec<Category> {
+        let mut categories: Vec<Category> = Vec::new();
+        let query = "SELECT categoryId, category FROM categories";
+        for row in self
+            .connection
+            .prepare(query)
+            .expect("Couldn't prepare statement")
+            .into_iter()
+            .map(|row| row.expect("Couldn't fetch row"))
+        {
+            let category_id = row.read::<i64, _>("categoryId");
+            let category_name = row.read::<&str, _>("category");
+            let category = Category::new(category_id, category_name);
+            categories.push(category);
+        }
+        categories
+    }
+
     pub fn new(database_file: &str) -> Self {
         Self {
             connection: sqlite::open(database_file).expect("Couldn't open database"),
@@ -164,6 +182,20 @@ impl Entry {
             category: category.to_string(),
             product: product.to_string(),
             price,
+        }
+    }
+}
+
+pub struct Category {
+    pub category_id: i64,
+    pub category: String,
+}
+
+impl Category {
+    pub fn new(category_id: i64, category: &str) -> Self {
+        Self {
+            category_id,
+            category: category.to_string(),
         }
     }
 }
@@ -237,20 +269,19 @@ mod tests {
     }
 
     #[test]
-    fn create_category() {
-        let query = "SELECT category FROM categories";
+    fn categories() {
         let database = Database::new(":memory:");
         database.create_database();
+
+        let categories = database.get_categories();
+        assert!(categories.is_empty());
+
         database.create_category("food");
-        for row in database
-            .connection
-            .prepare(query)
-            .expect("Couldn't prepare statement")
-            .into_iter()
-            .map(|row| row.expect("Couldn't fetch row"))
-        {
-            assert_eq!("food", row.read::<&str, _>("category"));
-        }
+        let categories = database.get_categories();
+        assert_eq!(1, categories.len());
+        let category = &categories[0];
+        assert_eq!(category.category_id, 1);
+        assert_eq!(category.category, "food");
     }
 
     #[test]
