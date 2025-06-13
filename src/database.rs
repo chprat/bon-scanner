@@ -98,6 +98,7 @@ impl Database {
         for empty_bon in empty_bons {
             let mut bon = Bon::new(&empty_bon.date, empty_bon.price);
             let bon_id = empty_bon.bon_id;
+            bon.bon_id = bon_id;
             let query = format!(
                 "SELECT category, price, product FROM entries e
                  JOIN products USING (productId)
@@ -446,6 +447,7 @@ mod tests {
         let bons = database.get_bons();
         assert_eq!(2, bons.len());
         let bon = &bons[0];
+        assert_eq!(1, bon.bon_id);
         assert_eq!("2024-12-24 12:12:12 +0100", bon.date);
         assert_eq!(25.47, bon.price);
         assert_eq!(2, bon.entries.len());
@@ -453,6 +455,7 @@ mod tests {
         assert!(bon.entries.contains(&eggs1));
 
         let bon = &bons[1];
+        assert_eq!(2, bon.bon_id);
         assert_eq!("2024-12-25 13:12:12 +0100", bon.date);
         assert_eq!(26.47, bon.price);
         assert_eq!(3, bon.entries.len());
