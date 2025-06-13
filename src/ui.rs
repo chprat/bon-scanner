@@ -35,6 +35,10 @@ impl Widget for &mut App<'_> {
                 self.render_convert(main_area, buf);
                 self.render_edit(main_area, buf, "Edit bon price".to_string());
             }
+            AppState::EditCategory => {
+                self.render_convert(main_area, buf);
+                self.render_edit(main_area, buf, "Edit category".to_string());
+            }
             AppState::Home => {
                 self.render_home(main_area, buf);
             }
@@ -129,7 +133,9 @@ impl App<'_> {
 
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state {
-            AppState::ConvertBon => "Delete Entry: x | Edit Bon Price: o | Close: Esc | Quit: q",
+            AppState::ConvertBon => {
+                "Edit Category: c | Delete Entry: x | Edit Bon Price: o | Close: Esc | Quit: q"
+            }
             AppState::Home => "Next: j | Previous: k | Import: i | Quit: q",
             AppState::Import => "Next: j | Previous: k | Process: Enter | Close: Esc | Quit: q",
             AppState::OCR => {
