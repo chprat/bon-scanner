@@ -145,6 +145,25 @@ impl Database {
         }
     }
 
+    pub fn get_products(&self) -> Vec<Product> {
+        let mut products: Vec<Product> = Vec::new();
+        let query = "SELECT productId, categoryId, product FROM products";
+        for row in self
+            .connection
+            .prepare(query)
+            .expect("Couldn't prepare statement")
+            .into_iter()
+            .map(|row| row.expect("Couldn't fetch row"))
+        {
+            let product_id = row.read::<i64, _>("productId");
+            let category_id = row.read::<i64, _>("categoryId");
+            let product_name = row.read::<&str, _>("product");
+            let product = Product::new(product_id, category_id, product_name);
+            products.push(product);
+        }
+        products
+    }
+
     pub fn new(database_file: &str) -> Self {
         Self {
             connection: sqlite::open(database_file).expect("Couldn't open database"),
@@ -209,6 +228,22 @@ impl Category {
         Self {
             category_id,
             category: category.to_string(),
+        }
+    }
+}
+
+pub struct Product {
+    pub product_id: i64,
+    pub category_id: i64,
+    pub product: String,
+}
+
+impl Product {
+    pub fn new(product_id: i64, category_id: i64, product: &str) -> Self {
+        Self {
+            product_id,
+            category_id,
+            product: product.to_string(),
         }
     }
 }
@@ -332,24 +367,6 @@ mod tests {
     }
 
     #[test]
-    fn create_product() {
-        let query = "SELECT categoryId, product FROM products";
-        let database = Database::new(":memory:");
-        database.create_database();
-        database.create_product(1, "butter");
-        for row in database
-            .connection
-            .prepare(query)
-            .expect("Couldn't prepare statement")
-            .into_iter()
-            .map(|row| row.expect("Couldn't fetch row"))
-        {
-            assert_eq!(1, row.read::<i64, _>("categoryId"));
-            assert_eq!("butter", row.read::<&str, _>("product"));
-        }
-    }
-
-    #[test]
     fn get_bons() {
         let database = Database::new(":memory:");
         database.create_database();
@@ -389,5 +406,21 @@ mod tests {
         assert!(bon.entries.contains(&eggs2));
         assert!(bon.entries.contains(&spoon));
         assert!(bon.entries.contains(&fork));
+    }
+
+    #[test]
+    fn products() {
+        let database = Database::new(":memory:");
+        database.create_database();
+        let products = database.get_products();
+        assert!(products.is_empty());
+
+        database.create_product(1, "butter");
+        let products = database.get_products();
+        assert_eq!(1, products.len());
+        let product = &products[0];
+        assert_eq!(product.product_id, 1);
+        assert_eq!(product.category_id, 1);
+        assert_eq!(product.product, "butter");
     }
 }
