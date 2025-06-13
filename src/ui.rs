@@ -294,9 +294,10 @@ impl From<&OcrEntry> for ListItem<'_> {
 impl From<&SummaryEntry> for ListItem<'_> {
     fn from(value: &SummaryEntry) -> Self {
         let line = if value.category != "total" {
-            Line::from(format!("{} {} €", value.category, value.total))
+            Line::from(format!("{} {:.2} €", value.category, value.total))
         } else {
-            Line::from(format!("{} {} €", value.category, value.total)).add_modifier(Modifier::BOLD)
+            Line::from(format!("{} {:.2} €", value.category, value.total))
+                .add_modifier(Modifier::BOLD)
         };
         ListItem::new(line)
     }
