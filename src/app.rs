@@ -23,9 +23,9 @@ pub struct App<'a> {
     pub import_list: FileList,
     import_path: String,
     pub new_bon_list: NewBonList,
-    pub ocr_blacklist: Vec<String>,
+    ocr_blacklist: Vec<String>,
     pub ocr_list: OcrList,
-    pub ocr_file: String,
+    ocr_file: String,
     running: bool,
 }
 
