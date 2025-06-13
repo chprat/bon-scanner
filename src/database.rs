@@ -145,6 +145,19 @@ impl Database {
         }
     }
 
+    pub fn get_last_category_id(&self) -> i64 {
+        let query = "SELECT MAX(categoryId) FROM categories";
+        let mut statement = self
+            .connection
+            .prepare(query)
+            .expect("Couldn't prepare statement");
+        if let Ok(sqlite::State::Row) = statement.next() {
+            statement.read::<i64, _>(0).unwrap_or(0)
+        } else {
+            0
+        }
+    }
+
     pub fn get_products(&self) -> Vec<Product> {
         let mut products: Vec<Product> = Vec::new();
         let query = "SELECT productId, categoryId, product FROM products";
@@ -330,10 +343,12 @@ mod tests {
 
         let categories = database.get_categories();
         assert!(categories.is_empty());
+        assert_eq!(0, database.get_last_category_id());
 
         database.create_category("food");
         let categories = database.get_categories();
         assert_eq!(1, categories.len());
+        assert_eq!(1, database.get_last_category_id());
         let category = &categories[0];
         assert_eq!(category.category_id, 1);
         assert_eq!(category.category, "food");
