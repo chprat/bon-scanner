@@ -28,6 +28,10 @@ impl Widget for &mut App<'_> {
                 self.render_ocr(main_area, buf);
                 self.render_edit(main_area, buf, "Add to blacklist".to_string());
             }
+            AppState::Category => {
+                self.render_convert(main_area, buf);
+                self.render_category(main_area, buf);
+            }
             AppState::ConvertBon => {
                 self.render_convert(main_area, buf);
             }
@@ -65,6 +69,34 @@ impl Widget for &mut App<'_> {
 }
 
 impl App<'_> {
+    fn render_category(&mut self, area: Rect, buf: &mut Buffer) {
+        let popup_area = popup_area(area, 50, 50);
+        let categories_block = Block::bordered()
+            .title("Categories")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+
+        let categories: Vec<ListItem> = self
+            .category_list
+            .items
+            .iter()
+            .map(ListItem::from)
+            .collect();
+
+        let categories_list = List::new(categories)
+            .block(categories_block)
+            .highlight_style(SELECTED_STYLE)
+            .highlight_spacing(HighlightSpacing::Always);
+
+        Widget::render(Clear, popup_area, buf);
+        StatefulWidget::render(
+            categories_list,
+            popup_area,
+            buf,
+            &mut self.category_list.state,
+        );
+    }
+
     fn render_convert(&mut self, area: Rect, buf: &mut Buffer) {
         let [items_area, details_area] =
             Layout::horizontal([Constraint::Fill(2), Constraint::Fill(1)]).areas(area);
@@ -265,6 +297,13 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
 impl From<&database::Bon> for ListItem<'_> {
     fn from(value: &database::Bon) -> Self {
         let line = Line::from(format!("{} {} €", value.date, value.price));
+        ListItem::new(line)
+    }
+}
+
+impl From<&database::Category> for ListItem<'_> {
+    fn from(value: &database::Category) -> Self {
+        let line = Line::from(value.category.to_string());
         ListItem::new(line)
     }
 }

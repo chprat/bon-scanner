@@ -67,6 +67,7 @@ pub struct OcrList {
 
 pub enum AppState {
     Blacklist,
+    Category,
     ConvertBon,
     EditBonPrice,
     EditCategory,
@@ -418,6 +419,17 @@ impl App<'_> {
         }
     }
 
+    fn go_category_state(&mut self) {
+        if matches!(self.current_state, AppState::ConvertBon)
+            | matches!(self.current_state, AppState::EditCategory)
+        {
+            if !self.category_list.items.is_empty() {
+                self.category_list.state.select_first();
+            }
+            self.current_state = AppState::Category;
+        }
+    }
+
     fn go_convert_bon_state(&mut self) {
         self.current_state = AppState::ConvertBon;
     }
@@ -532,6 +544,13 @@ impl App<'_> {
 
     fn next_item(&mut self) {
         match self.current_state {
+            AppState::Category => {
+                if let Some(i) = self.category_list.state.selected() {
+                    if i < self.category_list.items.len() - 1 {
+                        self.category_list.state.select_next();
+                    }
+                }
+            }
             AppState::ConvertBon => {
                 if let Some(i) = self.new_bon_list.state.selected() {
                     if i < self.new_bon_list.items.len() - 1 {
@@ -657,6 +676,13 @@ impl App<'_> {
 
     fn previous_item(&mut self) {
         match self.current_state {
+            AppState::Category => {
+                if let Some(i) = self.category_list.state.selected() {
+                    if i > 0 {
+                        self.category_list.state.select_previous();
+                    }
+                }
+            }
             AppState::ConvertBon => {
                 if let Some(i) = self.new_bon_list.state.selected() {
                     if i > 0 {
@@ -717,6 +743,7 @@ impl App<'_> {
                     AppEvent::CalculateSummary => self.calculate_summary(),
                     AppEvent::ConvertToBon => self.convert_to_bon(),
                     AppEvent::GoBlacklistState => self.go_blacklist_state(),
+                    AppEvent::GoCategoryState => self.go_category_state(),
                     AppEvent::GoConvertBonState => self.go_convert_bon_state(),
                     AppEvent::GoEditBonPriceState => self.go_edit_bon_price_state(),
                     AppEvent::GoEditCategoryState => self.go_edit_category_state(),
@@ -761,6 +788,11 @@ impl App<'_> {
             self.import_list.items = read_ocr_files(&self.database.get_processed());
             if !self.import_list.items.is_empty() {
                 self.import_list.state.select_first();
+            }
+        } else if matches!(self.current_state, AppState::Category) {
+            self.category_list.items = self.database.get_categories();
+            if !self.category_list.items.is_empty() {
+                self.category_list.state.select_first();
             }
         }
     }
