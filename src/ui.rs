@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Flex, Layout, Rect},
-    style::{Modifier, Style, Stylize, palette::tailwind::CYAN},
+    style::{Modifier, Style, Stylize, palette::tailwind::CYAN, palette::tailwind::LIME},
     text::Line,
     widgets::{
         Block, BorderType, Clear, HighlightSpacing, List, ListItem, Paragraph, StatefulWidget,
@@ -17,6 +17,7 @@ use crate::{
 
 const SELECTED_STYLE: Style = Style::new().bg(CYAN.c600).add_modifier(Modifier::BOLD);
 const FOOTER_STYLE: Style = Style::new().fg(CYAN.c600);
+const OKAY_STYLE: Style = Style::new().fg(LIME.c400);
 
 impl Widget for &mut App<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -147,19 +148,31 @@ impl App<'_> {
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
+        let style = if !self.new_bon_list.price_eq {
+            Style::default()
+        } else {
+            OKAY_STYLE
+        };
         let file_name = Path::new(&self.ocr_file)
             .file_name()
             .unwrap_or_default()
             .to_string_lossy();
-        let summary_line = format!(
-            "file: {}\nprice (OCR): {} €\nprice (calculated): {:.2} €\ndate: {}",
-            file_name,
-            self.new_bon_list.price_ocr,
-            self.new_bon_list.price_calc,
-            self.new_bon_list.date
+        let file_line = Line::from(format!("file: {}\n", file_name));
+        let price_ocr_line = Line::styled(
+            format!("price (OCR): {} €\n", self.new_bon_list.price_ocr),
+            style,
         );
+        let price_calc_line = Line::styled(
+            format!(
+                "price (calculated): {:.2} €\n",
+                self.new_bon_list.price_calc
+            ),
+            style,
+        );
+        let date_line = Line::from(format!("date: {}", self.new_bon_list.date));
 
-        let summary = Paragraph::new(summary_line).block(summary_block);
+        let summary_text = vec![file_line, price_ocr_line, price_calc_line, date_line];
+        let summary = Paragraph::new(summary_text).block(summary_block);
 
         Widget::render(summary, summary_area, buf);
     }

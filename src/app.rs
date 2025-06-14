@@ -1,6 +1,7 @@
 use crate::database;
 use crate::event::{AppEvent, Event, EventHandler};
 use crate::settings;
+use float_cmp::{ApproxEq, F64Margin};
 use ratatui::{
     DefaultTerminal,
     crossterm::event::{KeyCode, KeyEvent},
@@ -50,6 +51,7 @@ pub struct NewBonList {
     pub date: String,
     pub items: Vec<database::Entry>,
     pub price_calc: f64,
+    pub price_eq: bool,
     pub price_ocr: f64,
     pub state: ListState,
 }
@@ -126,6 +128,7 @@ impl Default for App<'_> {
                 date: String::new(),
                 items: Vec::new(),
                 price_calc: 0.0,
+                price_eq: false,
                 price_ocr: 0.0,
                 state: ListState::default(),
             },
@@ -174,6 +177,13 @@ impl App<'_> {
                 .iter()
                 .map(|entry| entry.price)
                 .sum();
+            self.new_bon_list.price_eq = self.new_bon_list.price_ocr.approx_eq(
+                self.new_bon_list.price_calc,
+                F64Margin {
+                    ulps: 2,
+                    epsilon: 1.0,
+                },
+            );
         }
     }
 
@@ -310,13 +320,13 @@ impl App<'_> {
                                             repl.parse::<f64>().ok()
                                         })
                                         .unwrap_or(0.0);
-                                    self.events.send(AppEvent::CalculateSummary);
                                 }
                             }
                         }
                         _ => {}
                     }
                     self.events.send(AppEvent::GoConvertBonState);
+                    self.events.send(AppEvent::CalculateSummary);
                 }
                 KeyCode::Esc => self.events.send(AppEvent::GoConvertBonState),
                 _ => _ = self.edit_field.input(key_event),
