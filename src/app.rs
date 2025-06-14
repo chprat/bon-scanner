@@ -335,15 +335,7 @@ impl App<'_> {
                         self.events.send(AppEvent::GoBlacklistState);
                     }
                 }
-                KeyCode::Char('c') => {
-                    self.edit_field.move_cursor(CursorMove::End);
-                    self.edit_field.delete_line_by_head();
-                    if let Some(i) = self.new_bon_list.state.selected() {
-                        self.edit_field
-                            .insert_str(self.new_bon_list.items[i].category.as_str());
-                    }
-                    self.events.send(AppEvent::GoEditCategoryState);
-                }
+                KeyCode::Char('c') => self.events.send(AppEvent::GoCategoryState),
                 KeyCode::Char('d') => self.events.send(AppEvent::OcrMarkDate),
                 KeyCode::Char('h') => self.events.send(AppEvent::HideItem),
                 KeyCode::Char('i') => self.events.send(AppEvent::GoImportState),
@@ -404,9 +396,26 @@ impl App<'_> {
                         self.events.send(AppEvent::ConvertToBon);
                     } else if matches!(self.current_state, AppState::ConvertBon) {
                         self.events.send(AppEvent::ImportBon);
+                    } else if matches!(self.current_state, AppState::Category) {
+                        if let Some(i) = self.category_list.state.selected() {
+                            if let Some(category) = self.category_list.items.get(i) {
+                                if let Some(j) = self.new_bon_list.state.selected() {
+                                    if let Some(item) = self.new_bon_list.items.get_mut(j) {
+                                        item.category = category.category.clone();
+                                    }
+                                }
+                            }
+                        }
+                        self.events.send(AppEvent::GoConvertBonState);
                     }
                 }
-                KeyCode::Esc => self.events.send(AppEvent::GoHomeState),
+                KeyCode::Esc => {
+                    if matches!(self.current_state, AppState::Category) {
+                        self.events.send(AppEvent::GoConvertBonState)
+                    } else {
+                        self.events.send(AppEvent::GoHomeState)
+                    };
+                }
                 _ => {}
             }
         }
