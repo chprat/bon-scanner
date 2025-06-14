@@ -8,6 +8,7 @@ use ratatui::{
         Widget,
     },
 };
+use std::path::Path;
 
 use crate::{
     app::{App, AppState, OcrEntry, OcrType, SummaryEntry},
@@ -146,9 +147,16 @@ impl App<'_> {
             .title_alignment(Alignment::Center)
             .border_type(BorderType::Rounded);
 
+        let file_name = Path::new(&self.ocr_file)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy();
         let summary_line = format!(
-            "price (OCR): {} €\nprice (calculated): {:.2} €\ndate: {}",
-            self.new_bon_list.price_ocr, self.new_bon_list.price_calc, self.new_bon_list.date
+            "file: {}\nprice (OCR): {} €\nprice (calculated): {:.2} €\ndate: {}",
+            file_name,
+            self.new_bon_list.price_ocr,
+            self.new_bon_list.price_calc,
+            self.new_bon_list.date
         );
 
         let summary = Paragraph::new(summary_line).block(summary_block);

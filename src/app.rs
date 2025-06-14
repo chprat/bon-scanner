@@ -27,7 +27,7 @@ pub struct App<'a> {
     pub new_bon_list: NewBonList,
     ocr_blacklist: Vec<String>,
     pub ocr_list: OcrList,
-    ocr_file: String,
+    pub ocr_file: String,
     running: bool,
 }
 
