@@ -17,6 +17,7 @@ use tui_textarea::{CursorMove, TextArea};
 pub struct App<'a> {
     pub bon_list: BonList,
     pub bon_summary: Vec<SummaryEntry>,
+    pub category_list: CategoryList,
     pub current_state: AppState,
     database: database::Database,
     pub edit_field: TextArea<'a>,
@@ -32,6 +33,11 @@ pub struct App<'a> {
 
 pub struct BonList {
     pub items: Vec<database::Bon>,
+    pub state: ListState,
+}
+
+pub struct CategoryList {
+    pub items: Vec<database::Category>,
     pub state: ListState,
 }
 
@@ -95,9 +101,14 @@ impl Default for App<'_> {
         let blacklist = database.get_blacklist();
         let processed = database.get_processed();
         let import_list = read_ocr_files(&processed);
+        let category_list = database.get_categories();
         Self {
             bon_list: BonList {
                 items: bons,
+                state: ListState::default(),
+            },
+            category_list: CategoryList {
+                items: category_list,
                 state: ListState::default(),
             },
             bon_summary: Vec::new(),
@@ -683,6 +694,9 @@ impl App<'_> {
         if !self.bon_list.items.is_empty() {
             self.bon_list.state.select_first();
             self.events.send(AppEvent::CalculateSummary);
+        }
+        if !self.category_list.items.is_empty() {
+            self.category_list.state.select_first();
         }
         if !self.import_list.items.is_empty() {
             self.import_list.state.select_first();
