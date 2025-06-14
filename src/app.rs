@@ -249,7 +249,7 @@ impl App<'_> {
     }
 
     fn extract_price(line: &str) -> Option<f64> {
-        let re = Regex::new(r"(\d*[\.,]\d*)").expect("Could not compile regex");
+        let re = Regex::new(r"(\d+[.,]\d+)").expect("Could not compile regex");
         re.find(line)
             .and_then(|m| m.as_str().replace(',', ".").parse::<f64>().ok())
     }
