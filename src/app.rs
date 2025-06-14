@@ -267,7 +267,6 @@ impl App<'_> {
                 _ => _ = self.edit_field.input(key_event),
             }
         } else if matches!(self.current_state, AppState::EditBonPrice)
-            | matches!(self.current_state, AppState::EditCategory)
             | matches!(self.current_state, AppState::EditName)
             | matches!(self.current_state, AppState::EditPrice)
         {
@@ -322,8 +321,34 @@ impl App<'_> {
                 KeyCode::Esc => self.events.send(AppEvent::GoConvertBonState),
                 _ => _ = self.edit_field.input(key_event),
             }
+        } else if matches!(self.current_state, AppState::EditCategory) {
+            match key_event.code {
+                KeyCode::Enter => {
+                    let category = self.edit_field.lines()[0].as_str();
+                    let category_exists = self
+                        .category_list
+                        .items
+                        .iter()
+                        .any(|elem| elem.category == category);
+                    if !category_exists {
+                        self.database
+                            .create_category(self.edit_field.lines()[0].as_str());
+                    }
+                    self.events.send(AppEvent::GoCategoryState);
+                    self.events.send(AppEvent::UpdateFromDatabase);
+                }
+                KeyCode::Esc => self.events.send(AppEvent::GoCategoryState),
+                _ => _ = self.edit_field.input(key_event),
+            }
         } else {
             match key_event.code {
+                KeyCode::Char('a') => {
+                    if matches!(self.current_state, AppState::Category) {
+                        self.edit_field.move_cursor(CursorMove::End);
+                        self.edit_field.delete_line_by_head();
+                        self.events.send(AppEvent::GoEditCategoryState);
+                    }
+                }
                 KeyCode::Char('b') => {
                     if matches!(self.current_state, AppState::OCR) {
                         self.edit_field.move_cursor(CursorMove::End);
@@ -450,7 +475,7 @@ impl App<'_> {
     }
 
     fn go_edit_category_state(&mut self) {
-        if matches!(self.current_state, AppState::ConvertBon) {
+        if matches!(self.current_state, AppState::Category) {
             self.current_state = AppState::EditCategory;
         }
     }
