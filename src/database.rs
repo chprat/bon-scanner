@@ -125,7 +125,7 @@ impl Database {
 
     pub fn get_categories(&self) -> Vec<Category> {
         let mut categories: Vec<Category> = Vec::new();
-        let query = "SELECT categoryId, category FROM categories";
+        let query = "SELECT categoryId, category FROM categories ORDER BY category";
         for row in self
             .connection
             .prepare(query)
